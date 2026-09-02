@@ -1,0 +1,20 @@
+{
+  "name": "kui-app",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/main.tsx src/headless.tsx --bundle --platform=node --packages=external --jsx=automatic --jsx-import-source=@qxuken/kui --format=esm --outdir=dist --out-extension:.js=.mjs",
+    "start": "npm run build && node dist/main.mjs",
+    "headless": "npm run build && node dist/headless.mjs",
+    "typecheck": "tsc"
+  },
+  "dependencies": {
+    "@qxuken/kui": "^0.1.0-alpha.2"
+  },
+  "devDependencies": {
+    "@types/node": "26.4.0",
+    "esbuild": "0.28.2",
+    "typescript": "7.0.2"
+  }
+}
