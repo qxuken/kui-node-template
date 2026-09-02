@@ -19,7 +19,9 @@ dotfiles npm would otherwise drop from the tarball, and the package name is
 taken from the directory. The generated `.npmrc` keeps `@qxuken/kui`
 resolving from the same registry.
 
-Publish a new version with `npm version <x.y.z> && npm publish` (the
-registry is in `publishConfig`; a `write:packages` token in `~/.npmrc`).
+Releases are tags: `npm version <x.y.z>` (commits and tags `v<x.y.z>`), then
+`git push --follow-tags`. CI scaffolds and runs an app on every push and,
+on a `v*` tag, publishes to the registry with the `PACKAGES_TOKEN` secret.
+`npm publish` also works by hand with a `write:packages` token in `~/.npmrc`.
 `npm create` only accepts registry names, so test an unpublished checkout with
 `node /path/to/kui-node-template/index.mjs demo` (same code path as the bin).

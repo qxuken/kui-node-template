@@ -1,0 +1,72 @@
+# check: scaffold an app with the initializer exactly as `npm create` would,
+# install it (kui comes from the Forgejo registry through the generated
+# .npmrc, esbuild/typescript from npmjs), run it headlessly and typecheck.
+# Pushing a `v*` tag additionally publishes @qxuken/create-kui-node to the
+# Forgejo npm registry; needs the PACKAGES_TOKEN secret (write:packages).
+name: ci
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+
+jobs:
+  check:
+    runs-on: docker
+    container:
+      image: node:24-bookworm
+    steps:
+      - uses: actions/checkout@v4
+
+      # The headless run shapes real text; without a font every glyph is
+      # missing and the layout collapses.
+      - name: Install a font
+        run: |
+          set -eu
+          apt-get update
+          apt-get install -y --no-install-recommends fonts-dejavu-core
+
+      - name: Scaffold, install, run, typecheck
+        run: |
+          set -eu
+          node index.mjs --help
+          node index.mjs /tmp/scaffold/my-app
+          cd /tmp/scaffold/my-app
+          cat .npmrc
+          npm install
+          npm run headless
+          npm run typecheck
+
+      - name: Pack
+        run: npm pack --dry-run
+
+  publish:
+    needs: check
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: docker
+    container:
+      image: node:24-bookworm
+    env:
+      PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
+      NPM_REGISTRY: ${{ github.server_url }}/api/packages/${{ github.repository_owner }}/npm/
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tag matches package.json
+        run: |
+          set -eu
+          ver=$(node -p 'require("./package.json").version')
+          test "v$ver" = "$GITHUB_REF_NAME" || { echo "tag $GITHUB_REF_NAME != package.json $ver" >&2; exit 1; }
+          test -n "$PACKAGES_TOKEN" || { echo "PACKAGES_TOKEN secret is not set" >&2; exit 1; }
+
+      # Prereleases get their identifier as the dist-tag; plain versions
+      # become `latest`, which is what `npm create @qxuken/kui-node` picks.
+      - name: npm publish
+        run: |
+          set -eu
+          ver=$(node -p 'require("./package.json").version')
+          tag=latest
+          case "$ver" in *-*) tag="${ver#*-}"; tag="${tag%%.*}";; esac
+          printf '%s:_authToken=%s\n' "${NPM_REGISTRY#https:}" "$PACKAGES_TOKEN" > "$HOME/.npmrc"
+          npm publish --registry "$NPM_REGISTRY" --tag "$tag"
