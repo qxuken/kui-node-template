@@ -6,23 +6,15 @@ import type { CoreMsg, UiEvent } from '@qxuken/kui';
 
 export type Model = { count: number; note: string };
 
-// The messages this app's own nodes carry.
-export type CounterMsg = { kind: 'add'; by: number } | { kind: 'reset' };
+// The messages this app's nodes carry — the `onClick` payloads, and what
+// `src/kui.d.ts` registers with the JSX props so a typo fails at the node.
+export type Msg = { kind: 'add'; by: number } | { kind: 'reset' };
 
-// Registering them types the payload props: `onClick`, `onDrag`, `onHover`
-// and `onKey` then take a CounterMsg rather than any plain data, so a typo
-// fails where it is written. Program-wide (one app per tsconfig), and
-// entirely optional — delete it and everything below still compiles.
-declare module '@qxuken/kui/jsx-runtime' {
-  interface KuiMsg {
-    msg: CounterMsg;
-  }
-}
-
-// Everything `update` sees: this app's messages plus the ones the core
-// sends by itself (`changed`, `submit`, `key`, `hover`, `drag`,
-// `modifiers`). One flat union, so the switch below needs no casts.
-export type Msg = CounterMsg | CoreMsg;
+// What the loop actually delivers, and the only place `CoreMsg` shows up:
+// this app's messages plus the ones the core sends by itself (`changed`,
+// `submit`, `key`, `hover`, `drag`, `modifiers`, `resize`, `sound`). One
+// flat union, so `update` is a single switch over `msg.kind` with no casts.
+export type AnyMsg = Msg | CoreMsg;
 
 export const init: Model = { count: 0, note: '' };
 
@@ -30,8 +22,8 @@ export const init: Model = { count: 0, note: '' };
 // buffer and reports "changed" with the editor's node key.
 export function update(
   model: Model,
-  msg: Msg,
-  ev: UiEvent<Msg>,
+  msg: AnyMsg,
+  ev: UiEvent<AnyMsg>,
   editText: (key: string) => string | null | undefined,
 ): Model | undefined {
   switch (msg.kind) {

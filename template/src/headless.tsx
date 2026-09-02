@@ -2,10 +2,10 @@
 // hit-testing its quad, print what changed. Handy for tests and CI.
 import { createApp, decodeQuads } from '@qxuken/kui';
 import type { App } from '@qxuken/kui';
-import { init, update, view, type Model, type Msg } from './app.js';
+import { init, update, view, type Model, type AnyMsg } from './app.js';
 
 // The annotation matters: `update` reads `app.ctx` inside app's own initializer.
-const app: App<Model, Msg> = createApp(
+const app: App<Model, AnyMsg> = createApp(
   { init, update: (m, msg, ev) => update(m, msg, ev, (k) => app.ctx.editText(k)), view },
   { width: 640, height: 480 },
 );
