@@ -19,6 +19,11 @@ dotfiles npm would otherwise drop from the tarball, and the package name is
 taken from the directory. The generated `.npmrc` keeps `@qxuken/kui`
 resolving from the same registry.
 
+`template/package.json` pins the minimum `@qxuken/kui` the scaffold needs,
+so a template change that uses a new kui API waits on that kui release:
+publish the library version first, then push the tag here — CI installs the
+scaffold for real and cannot resolve an unpublished floor.
+
 Releases are tags: `npm version <x.y.z>` (commits and tags `v<x.y.z>`), then
 `git push --follow-tags`. CI scaffolds and runs an app on every push and,
 on a `v*` tag, publishes to the registry with the `PACKAGES_TOKEN` secret.

@@ -2,11 +2,27 @@
 // turns a model into JSX (plain data, no reconciler), and `update` folds a
 // message back into the model. Messages are whatever you put in `onClick`;
 // the runtime never sees a closure.
-import type { Msg, UiEvent } from '@qxuken/kui';
+import type { CoreMsg, UiEvent } from '@qxuken/kui';
 
 export type Model = { count: number; note: string };
 
-export type AppMsg = { kind: 'add'; by: number } | { kind: 'reset' };
+// The messages this app's own nodes carry.
+export type CounterMsg = { kind: 'add'; by: number } | { kind: 'reset' };
+
+// Registering them types the payload props: `onClick`, `onDrag`, `onHover`
+// and `onKey` then take a CounterMsg rather than any plain data, so a typo
+// fails where it is written. Program-wide (one app per tsconfig), and
+// entirely optional — delete it and everything below still compiles.
+declare module '@qxuken/kui/jsx-runtime' {
+  interface KuiMsg {
+    msg: CounterMsg;
+  }
+}
+
+// Everything `update` sees: this app's messages plus the ones the core
+// sends by itself (`changed`, `submit`, `key`, `hover`, `drag`,
+// `modifiers`). One flat union, so the switch below needs no casts.
+export type Msg = CounterMsg | CoreMsg;
 
 export const init: Model = { count: 0, note: '' };
 
@@ -15,13 +31,12 @@ export const init: Model = { count: 0, note: '' };
 export function update(
   model: Model,
   msg: Msg,
-  ev: UiEvent,
+  ev: UiEvent<Msg>,
   editText: (key: string) => string | null | undefined,
 ): Model | undefined {
-  if (msg === null || typeof msg !== 'object' || Array.isArray(msg)) return;
-  switch ((msg as AppMsg | { kind: string }).kind) {
+  switch (msg.kind) {
     case 'add':
-      return { ...model, count: model.count + (msg as { by: number }).by };
+      return { ...model, count: model.count + msg.by };
     case 'reset':
       return { ...model, count: 0 };
     case 'changed':
@@ -32,9 +47,9 @@ export function update(
 function Counter({ count }: { count: number }) {
   return (
     <box dir="row" gap={12} crossAlign="center">
-      <button onClick={{ kind: 'add', by: 1 } satisfies AppMsg}>+1</button>
-      <button onClick={{ kind: 'add', by: -1 } satisfies AppMsg}>-1</button>
-      <button onClick={{ kind: 'reset' } satisfies AppMsg}>reset</button>
+      <button onClick={{ kind: 'add', by: 1 }}>+1</button>
+      <button onClick={{ kind: 'add', by: -1 }}>-1</button>
+      <button onClick={{ kind: 'reset' }}>reset</button>
       <text size={20} color="#e8e8f0">{`count = ${count}`}</text>
     </box>
   );
