@@ -10,6 +10,11 @@ npm run headless   # one frame + a click, no window
 npm run typecheck
 ```
 
+On Linux the prebuilt addon links ALSA for audio, so `libasound2` has to be
+installed (`libasound2t64` on trixie and newer); without it even
+`npm run headless` dies at dlopen, before any app code runs. macOS and
+Windows need nothing extra.
+
 `src/app.tsx` holds the model, `update` and `view`; `src/main.tsx` opens the
 window and `src/headless.tsx` drives the same app without one.
 `src/kui.d.ts` is types only.

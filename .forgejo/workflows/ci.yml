@@ -20,12 +20,17 @@ jobs:
       - uses: actions/checkout@v4
 
       # The headless run shapes real text; without a font every glyph is
-      # missing and the layout collapses.
-      - name: Install a font
+      # missing and the layout collapses. It also loads the prebuilt addon,
+      # which links ALSA for audio playback: no libasound and it fails at
+      # dlopen, before a single line of the app runs. Debian renamed the
+      # runtime package `libasound2t64` in trixie, so try both.
+      - name: Install system deps
         run: |
           set -eu
           apt-get update
           apt-get install -y --no-install-recommends fonts-dejavu-core
+          apt-get install -y --no-install-recommends libasound2 \
+            || apt-get install -y --no-install-recommends libasound2t64
 
       - name: Scaffold, install, run, typecheck
         run: |
