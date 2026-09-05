@@ -6,30 +6,58 @@ Elm-style messages as data, a real window from Node.
 ```
 npm install        # @qxuken/kui comes from the registry in .npmrc, prebuilt addon included
 npm start          # window
-npm run headless   # one frame + a click, no window
+npm run headless   # a frame driven by hand, no window
 npm run typecheck
 ```
+
+`src/app.tsx` holds the model, `update` and `view`; `src/main.tsx` opens the
+window and `src/headless.tsx` drives the same app without one.
+`src/kui.d.ts` is types only.
 
 On Linux the prebuilt addon links ALSA for audio, so `libasound2` has to be
 installed (`libasound2t64` on trixie and newer); without it even
 `npm run headless` dies at dlopen, before any app code runs. macOS and
 Windows need nothing extra.
 
-`src/app.tsx` holds the model, `update` and `view`; `src/main.tsx` opens the
-window and `src/headless.tsx` drives the same app without one.
-`src/kui.d.ts` is types only.
+## Messages
 
-Messages are typed end to end, under two names in `src/app.tsx`. `Msg` is
-what this app's nodes send — the `onClick` payloads. `AnyMsg` widens it with
-`CoreMsg`, what the core sends by itself (`changed`, `submit`, `key`,
-`hover`, `drag`, `modifiers`, `resize`, `sound`), and is what the loop
-delivers: `runWindowed<Model, AnyMsg>` and `App<Model, AnyMsg>` carry it
-through to `update`, events and `dispatch`, so `update` is one switch over
-`msg.kind` with no casts. `CoreMsg` itself is named once, next to `AnyMsg`.
+`Msg` is what this app's nodes send — the `onClick` payloads. `AnyMsg` widens
+it with `CoreMsg`, what the core sends by itself (`changed`, `submit`, `key`,
+`hover`, `drag`, `contextmenu`, `dismiss`, `layout`, `modifiers`, `resize`,
+`window`, `sound`), and is what the loop delivers: `runWindowed<Model,
+AnyMsg>` and `createApp<Model, AnyMsg>` carry it through to `update`, events
+and `dispatch`, so `update` is one switch over `msg.kind` with no casts.
 
 The JSX payload props are the one place the union cannot be inferred: props
-are global, so `onClick` takes the wire shape (any plain data) unless the
-app registers its own. `src/kui.d.ts` registers `Msg` and nothing else,
-which is what makes `onClick={{ kind: 'add', by: 1 }}` checked at the node
-with no wrapper call. Delete the file and the rest still compiles; payloads
-just accept any plain data again.
+are global, so `onClick` takes any plain data unless the app registers its
+own. That is all `src/kui.d.ts` does. A tag prop also takes `null` —
+`onContextMenu={null}` here — which declares the behaviour and leaves the
+events without a tag.
+
+## One `update`, both drivers
+
+`update`'s fourth argument is the surface the loop is driving: the headless
+`Ctx` under `createApp`, the `KuiWindow` under `runWindowed`. It is how
+`changed` reads an editor back (`ui.editText(ev.key)` — the runtime owns the
+buffer), and where `focus`, `play`, `measureText` and `setWindowSize` live.
+The config is `{ init, update, view }` on either side.
+
+## What the scaffold shows
+
+A counter, an editor, and a context menu on a secondary press: `onContextMenu`
+says where it landed and the view declares a `modal` float there. `modal`
+scopes the Tab ring, the hit list and the access tree to its subtree, sends
+`dismiss` on Escape or an outside press, and hands focus back where it found
+it — no scrim, no key binding, no "what was focused before?" field.
+
+Accessibility falls out of the props already there: every control is a Tab
+stop, Enter and Space press the focused one, the ring draws itself. What a
+screen reader cannot name is a warning, which is why the editor has a `label`
+and the menu one too. `src/headless.tsx` finds controls through
+`app.accessTree()` by those names rather than hunting the display list, and
+exits non-zero if the core raised a warning.
+
+The full prop, element and event reference ships with the library as
+`node_modules/@qxuken/kui/props.md`, and that package's README is the
+windowed-app checklist: hover and pressed colors, fonts, images, sound,
+custom window chrome, `float` overlays, text measurement, multiple windows.
