@@ -1,14 +1,26 @@
 {
   "name": "@qxuken/create-kui-node",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Scaffold a kui Node app: JSX views, Elm-style messages, a real window from Node",
   "license": "MIT",
-  "repository": { "type": "git", "url": "https://drydock9.qxuken.dev/qxuken/kui-node-template" },
-  "publishConfig": { "registry": "https://drydock9.qxuken.dev/api/packages/qxuken/npm/" },
+  "repository": {
+    "type": "git",
+    "url": "https://drydock9.qxuken.dev/qxuken/kui-node-template"
+  },
+  "publishConfig": {
+    "registry": "https://drydock9.qxuken.dev/api/packages/qxuken/npm/"
+  },
   "type": "module",
-  "bin": { "create-kui-node": "./index.mjs" },
-  "files": ["index.mjs", "template/"],
-  "engines": { "node": ">=20" },
+  "bin": {
+    "create-kui-node": "./index.mjs"
+  },
+  "files": [
+    "index.mjs",
+    "template/"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "test": "node index.mjs --help"
   }
