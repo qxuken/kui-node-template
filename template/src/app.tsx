@@ -15,7 +15,10 @@ export type AnyMsg = Msg | CoreMsg;
 export const init: Model = { count: 0, note: '', menu: null };
 
 // `ui` is the surface the loop drives: the `Ctx` headless, the `KuiWindow`
-// under a window. Both pass it, so one `update` serves both.
+// under a window. Both pass it, so one `update` serves both. `init` and
+// `view` can take it too — `init: (ui) => ...` for a first model measured
+// against the real window size, `view(model, window, ui)` for a tree that
+// calls `ui.measureText(...)` while it is being built.
 export function update(
   model: Model,
   msg: AnyMsg,
@@ -63,7 +66,13 @@ function Counter({ count }: { count: number }) {
       <button onClick={{ kind: 'add', by: 1 }}>+1</button>
       <button onClick={{ kind: 'add', by: -1 }}>-1</button>
       <button onClick={{ kind: 'reset' }}>reset</button>
-      <text size={20} color="#e8e8f0">{`count = ${count}`}</text>
+      {/* A live region: a screen reader reads the new count when it
+          changes, without the user going looking for it. On the smallest
+          node that holds the message — everything inside a live node is
+          live, so this is the text and not the row. */}
+      <box live="polite">
+        <text size={20} color="#e8e8f0">{`count = ${count}`}</text>
+      </box>
     </box>
   );
 }
