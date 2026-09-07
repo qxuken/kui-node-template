@@ -76,7 +76,17 @@ window sends them (the raw press to a key sink, then what the core does with
 it: dismiss the modal). `keyDown` and `key` are its halves, for a test that
 means to drive one and not the other.
 
+A third: `app.runOut()` before it clicks into the open menu. The loop owns the
+clock, so the frame that opens the menu is frame 0 of the menu's `enter` — the
+access rect is the one the item slides in from, four px above where it rests.
+`runOut` draws, then advances in frame steps until nothing moves, and returns
+the milliseconds it took; a test that reads a settled frame asks for one
+rather than writing the loop.
+
 The full prop, element and event reference ships with the library as
-`node_modules/@qxuken/kui/props.md`, and that package's README is the
-windowed-app checklist: hover and pressed colors, fonts, images, sound,
-custom window chrome, `float` overlays, text measurement, multiple windows.
+`node_modules/@qxuken/kui/props.md`. Beside it are `CHANGELOG.md` — every
+release lists what it adds and, separately, what you can delete — and the
+ADRs under `docs/adr/`, which is where the doc comments in `index.d.ts` point
+when they cite one. That package's README is the windowed-app checklist:
+hover and pressed colors, fonts, images, sound, custom window chrome, `float`
+overlays, text measurement, effects as data, multiple windows.

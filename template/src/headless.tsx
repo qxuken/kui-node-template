@@ -37,6 +37,12 @@ console.log(`menu at ${JSON.stringify(app.model.menu)}`);
 app.press('escape');
 console.log(`after escape: menu = ${app.model.menu}`);
 app.rightClick(500, 400);
+// The frame that opens the menu is frame 0 of its `enter`, so the rect the
+// access tree reports is the one the item slides in from — `dy: -4`, four px
+// above where it comes to rest. `runOut` draws once and then advances in
+// frame steps until nothing moves (128 ms here), so the click below lands on
+// the settled button, where the user's would.
+app.runOut();
 app.click(...center('+10'));
 console.log(`after the menu's +10: count = ${app.model.count}, menu = ${app.model.menu}`);
 
