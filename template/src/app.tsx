@@ -39,6 +39,11 @@ export function update(
   }
 }
 
+// Both resets are the same action, so the sentence is one string. With the
+// menu open the access tree carries two buttons named `reset`; what tells
+// them apart is the dialog the second one is inside, not the sentence.
+const resetHint = 'sets the count back to zero';
+
 // `modal` scopes the Tab ring, the hit list and the access tree to this
 // subtree, sends the `dismiss` above on Escape or an outside press, and
 // hands focus back where it found it.
@@ -55,7 +60,7 @@ function Menu({ at }: { at: { x: number; y: number } }) {
       transition={120} enter={{ opacity: 0, dy: -4 }} exit={{ opacity: 0 }}
     >
       <button onClick={{ kind: 'add', by: 10 }}>+10</button>
-      <button onClick={{ kind: 'reset' }}>reset</button>
+      <button onClick={{ kind: 'reset' }} description={resetHint}>reset</button>
     </box>
   );
 }
@@ -65,7 +70,12 @@ function Counter({ count }: { count: number }) {
     <box dir="row" gap={12} crossAlign="center">
       <button onClick={{ kind: 'add', by: 1 }}>+1</button>
       <button onClick={{ kind: 'add', by: -1 }}>-1</button>
-      <button onClick={{ kind: 'reset' }}>reset</button>
+      {/* `+1` is its own sentence; `reset` names an action and not its
+          object, so the rest of it is a `description` — spoken after the
+          name, never drawn. The stock button reads that, `label`,
+          `tooltip` and `disabled`, and drops any other prop with an
+          `unknown-prop` warning, because its look is its own spec. */}
+      <button onClick={{ kind: 'reset' }} description={resetHint}>reset</button>
       {/* A live region: a screen reader reads the new count when it
           changes, without the user going looking for it. On the smallest
           node that holds the message — everything inside a live node is

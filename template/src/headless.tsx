@@ -43,6 +43,15 @@ app.rightClick(500, 400);
 // frame steps until nothing moves (128 ms here), so the click below lands on
 // the settled button, where the user's would.
 app.runOut();
+// The stock button carries the rows a reader hears, so `reset` says what it
+// resets. Both of them are in the tree while the menu is open — a `modal`
+// marks the node in effect rather than pruning what is behind it — and what
+// tells them apart is the node each one is inside.
+const tree = app.accessTree();
+for (const node of tree.nodes.filter((n) => n.name === 'reset')) {
+  const parent = tree.nodes.find((n) => n.key === node.parent);
+  console.log(`reset in the ${parent?.role}: "${node.description}"`);
+}
 app.click(...center('+10'));
 console.log(`after the menu's +10: count = ${app.model.count}, menu = ${app.model.menu}`);
 
