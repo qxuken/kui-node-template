@@ -1,6 +1,6 @@
 {
   "name": "@qxuken/create-kui-node",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Scaffold a kui Node app: JSX views, Elm-style messages, a real window from Node",
   "license": "MIT",
   "repository": {
