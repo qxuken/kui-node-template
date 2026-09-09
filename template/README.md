@@ -47,8 +47,9 @@ The config is `{ init, update, view }` on either side.
 registered and reads the size the window really opened at instead of a
 constant a `resize` handler has to correct; `view(model, window, ui)` is what
 lets a tree size a column to its widest label with `ui.measureText(...)` while
-it is being built. Both are optional, and this app needs neither: its `init`
-is a value and its `view` takes the model alone.
+it is being built. Both are optional. This app's `init` is a value; its `view`
+takes the surface for `env()` alone, and ignores the window name in between —
+that is `'main'` until an app declares a second window.
 
 ## What the scaffold shows
 
@@ -72,6 +73,36 @@ value when it changes" — no status field in the model and nothing to clear a
 frame later. It goes on the smallest node holding the message, since
 everything inside a live node is live.
 
+## What the OS gets a say in
+
+`ui.env().system` is what the user set outside this app: `appearance`
+(light or dark), `accent` (the OS highlight colour), `motion` (whether they
+asked for less animation) and `locale` (a BCP-47 tag). A window asks macOS
+and Windows for all four and asks again when the app takes focus back; on
+X11 and Wayland the locale comes from `LANG` and the rest read `'unknown'`,
+as all four do in a headless core until `setEnv` says otherwise.
+
+`'unknown'` is a third answer and not a missing second one, which is why the
+enums spell it and why `motion` is tested with `=== 'reduced'` rather than
+for truthiness: a `reduceMotion` boolean would have had to invent a `false`
+for "nobody asked", and a view branching on that false animates for a user
+who asked it not to. Each reading here keeps this app's own default where
+the host cannot tell — the dark palette, the 120 ms menu.
+
+kui acts on none of it: a dark appearance repaints nothing and a reduced
+motion shortens no animation, because only the view knows which of its
+colours is the background and which of its animations carries meaning
+rather than decoration. The policy is three lines of `view` — a palette
+picked by `appearance`, the menu's `transition` dropped to zero by `motion`,
+and `accent` on the rule under the title, which substitutes the OS colour
+for that node's `bg` and nothing else. `accent` is the one prop whose paint
+depends on the machine, which is why it is opt-in and why the rule still
+declares the `bg` it falls back to. The stock button reads it too — and
+derives its hover and pressed shades from it, and picks a black or white
+label by its luminance — but `ButtonProps` does not list the prop, so
+`<button accent>` is a type error against alpha.10 that the encoder would
+have accepted.
+
 `src/headless.tsx` finds controls through `app.accessTree()` by the names a
 reader would say rather than hunting the display list, and exits non-zero if
 the core raised a warning. Two things it does not have to do by hand:
@@ -91,6 +122,14 @@ rather than writing the loop. With the menu settled it reads both reset
 buttons back off the tree, descriptions and all — a `modal` marks the node in
 effect rather than pruning what is behind it, so both are there, and what
 tells them apart is the node each is inside.
+
+Last it declares the user: `app.ctx.setEnv({system: {...}})` writes down what
+a window reads off the machine, so a suite can render the frame a light-mode
+reader with a yellow accent and reduced motion would get. It reads the root
+quad's colour back under an unknown appearance and under a declared light one,
+checks the accent reached the rule, then opens the menu again and gets `runOut`
+back as 0 ms where full motion took 128 — the app's own answer to the setting,
+since kui gave the animation no opinion about it.
 
 The full prop, element and event reference ships with the library as
 `node_modules/@qxuken/kui/props.md`, sorted by name, and `howto.md` beside it

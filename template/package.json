@@ -10,7 +10,7 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "@qxuken/kui": "^0.1.0-alpha.9"
+    "@qxuken/kui": "^0.1.0-alpha.10"
   },
   "devDependencies": {
     "@types/node": "26.4.0",
