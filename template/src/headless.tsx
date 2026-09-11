@@ -58,19 +58,38 @@ console.log(`after the menu's +10: count = ${app.model.count}, menu = ${app.mode
 // The four things the user set in the OS are a reading and not a policy: a
 // window asks macOS or Windows for them, a headless core knows what `setEnv`
 // declared, and `unknown` — the default here — means the host could not tell
-// rather than that the user chose nothing. So every frame above is the app's
-// own dark palette, and a suite says which user a frame is for.
+// rather than that the user chose nothing. `theme()` is the palette derived
+// from that reading, so a suite says which user a frame is for and reads the
+// roles back beside the quads they should have painted.
 const hex = (v: number) => Math.round(v * 255).toString(16).padStart(2, '0');
-// Painter's order, so the root box is quad 0 — the background the palette
-// picked — and the rest is every colour this frame put on screen.
-const colors = () => decodeQuads(app.ctx.quads()).map((q) => '#' + q.color.slice(0, 3).map(hex).join(''));
-console.log(`appearance unknown: background = ${colors()[0]}`);
+const role = (rgba: number) => '#' + (rgba >>> 0).toString(16).padStart(8, '0').slice(0, 6);
+const quads = () => decodeQuads(app.ctx.quads()).map((q) => ({ ...q, hex: '#' + q.color.slice(0, 3).map(hex).join('') }));
+/** The stock button named `name` as it was painted: its fill, and its label's colour. */
+function button(name: string) {
+  const { x, y, w, h } = app.accessTree().nodes.find((n) => n.name === name)!.rect;
+  const inside = (q: { x: number; y: number }) => q.x >= x && q.x < x + w && q.y >= y && q.y < y + h;
+  const [fill, ...glyphs] = quads().filter(inside);
+  return { fill: fill.hex, label: glyphs[0].hex };
+}
+// Painter's order, so the root box is quad 0 — the window behind everything.
+const report = (who: string) => {
+  const t = app.ctx.theme();
+  const plus = button('+1');
+  const same = (painted: string, name: string, value: number) =>
+    `${painted} ${painted === role(value) ? '=' : '!='} theme.${name}`;
+  console.log(`${who}: background ${same(quads()[0].hex, 'bg', t.bg)};`
+    + ` +1 fill ${same(plus.fill, 'accent', t.accent)}, label ${same(plus.label, 'onAccent', t.onAccent)}`);
+};
+report('appearance unknown');
 
+// An unknown appearance is the dark base; a declared light one with a yellow
+// accent is a light page, the rule and `+1` in yellow, and `+1`'s label black
+// — the readability arithmetic this app never wrote. In a window the same
+// change arrives as a `system` message too, so `view` runs again; here the
+// test wrote the reading itself, and renders.
 app.ctx.setEnv({ system: { appearance: 'light', accent: '#ffcc00', motion: 'reduced' } });
 app.render();
-// `accent` is the OS colour standing in for the rule's own `bg`, so the
-// yellow declared above is drawn where `brand` was and nothing else moves.
-console.log(`appearance light: background = ${colors()[0]}, rule accented = ${colors().includes('#ffcc00')}`);
+report('appearance light, accent #ffcc00');
 
 // `motion: 'reduced'` is the user asking for less animation, and dropping the
 // menu's `transition` to zero is this app answering — kui shortens nothing on

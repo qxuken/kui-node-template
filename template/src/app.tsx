@@ -1,4 +1,4 @@
-import type { CoreMsg, Ctx, KuiWindow, SystemEnv, UiEvent } from '@qxuken/kui';
+import type { CoreMsg, Ctx, KuiWindow, Metrics, Theme, UiEvent } from '@qxuken/kui';
 
 export type Model = {
   count: number;
@@ -35,27 +35,14 @@ export function update(
       return { ...model, menu: { x: msg.x, y: msg.y } };
     case 'dismiss':
       return { ...model, menu: null };
+    // The user changed an OS setting while the window was open. The model
+    // holds none of it — `view` reads `ui.theme()` and `ui.env()` — but a
+    // window's `view` only runs when `update` returns a model, so returning
+    // this one unchanged is what repaints the palette the OS just moved.
+    case 'system':
+      return model;
   }
 }
-
-// The colours are the app's; `env().system.appearance` is what the OS says.
-// kui acts on none of it — nothing repaints because the appearance changed —
-// because only the view knows which of its colours is the background.
-const dark = {
-  bg: '#14141c', menu: '#22242c', field: '#1f2030', shadow: '#00000066',
-  title: '#ffffff', text: '#e8e8f0', dim: '#99a0b0', brand: '#7aa2ff',
-};
-type Theme = typeof dark;
-const light: Theme = {
-  bg: '#f4f5f9', menu: '#ffffff', field: '#ffffff', shadow: '#00000029',
-  title: '#14141c', text: '#22242c', dim: '#5c6373', brand: '#2f5fd0',
-};
-
-// `'unknown'` is a third answer — nobody asked the OS, or the platform has
-// none — and not a missing second one, so it keeps this app's own default
-// rather than guessing light.
-const themeFor = (system: SystemEnv): Theme =>
-  system.appearance === 'light' ? light : dark;
 
 // Both resets are the same action, so the sentence is one string. With the
 // menu open the access tree carries two buttons named `reset`; what tells
@@ -65,9 +52,15 @@ const resetHint = 'sets the count back to zero';
 // `modal` scopes the Tab ring, the hit list and the access tree to this
 // subtree, sends the `dismiss` above on Escape or an outside press, and
 // hands focus back where it found it.
-function Menu({ at, theme, transition }: {
+//
+// A float paints `raised` with a `borderStrong` edge, which is what the
+// stock context menu does: on the dark base a float is lighter than the
+// page, on the light one it cannot be and separates by its border instead.
+// One spelling for both, and no shadow to weigh by appearance.
+function Menu({ at, theme, metrics, transition }: {
   at: { x: number; y: number };
   theme: Theme;
+  metrics: Metrics;
   transition: number;
 }) {
   return (
@@ -77,8 +70,8 @@ function Menu({ at, theme, transition }: {
                dx: at.x, dy: at.y, fit: true }}
       modal={null}
       label="Actions"
-      pad={4} gap={4} width={120} bg={theme.menu} radius={6}
-      shadowColor={theme.shadow} shadowBlur={16} shadowY={4}
+      pad={4} gap={4} width={120} bg={theme.raised} radius={metrics.radius}
+      borderColor={theme.borderStrong} borderW={1}
       transition={transition} enter={{ opacity: 0, dy: -4 }} exit={{ opacity: 0 }}
     >
       <button onClick={{ kind: 'add', by: 10 }}>+10</button>
@@ -87,23 +80,29 @@ function Menu({ at, theme, transition }: {
   );
 }
 
-function Counter({ count, theme }: { count: number; theme: Theme }) {
+function Counter({ count }: { count: number }) {
   return (
     <box dir="row" gap={12} crossAlign="center">
-      <button onClick={{ kind: 'add', by: 1 }}>+1</button>
+      {/* `accent` on the stock button is a question and not a colour: it
+          paints from the theme's accent family — the OS highlight where
+          the host reports one, kui's blue otherwise — takes its hover and
+          pressed shades from it, and picks a black or white label by its
+          luminance, so a yellow accent still reads. */}
+      <button onClick={{ kind: 'add', by: 1 }} accent>+1</button>
       <button onClick={{ kind: 'add', by: -1 }}>-1</button>
       {/* `+1` is its own sentence; `reset` names an action and not its
           object, so the rest of it is a `description` — spoken after the
           name, never drawn. The stock button reads that, `label`,
-          `tooltip` and `disabled`, and drops any other prop with an
-          `unknown-prop` warning, because its look is its own spec. */}
+          `tooltip`, `disabled` and `accent`, and drops any other prop with
+          an `unknown-prop` warning, because its look is its own spec. */}
       <button onClick={{ kind: 'reset' }} description={resetHint}>reset</button>
       {/* A live region: a screen reader reads the new count when it
           changes, without the user going looking for it. On the smallest
           node that holds the message — everything inside a live node is
-          live, so this is the text and not the row. */}
+          live, so this is the text and not the row. A `<text>` with no
+          `color` is `theme.fg`. */}
       <box live="polite">
-        <text size={20} color={theme.text}>{`count = ${count}`}</text>
+        <text size={20}>{`count = ${count}`}</text>
       </box>
     </box>
   );
@@ -112,33 +111,37 @@ function Counter({ count, theme }: { count: number; theme: Theme }) {
 // A `null` tag declares the behaviour and leaves the events without one;
 // this app has a single menu, so there is nothing to tell apart.
 //
-// The third argument is the surface, here for `env()` alone: `system` is the
-// four things the user set in the OS, as the host was able to read them. A
-// window asks macOS and Windows for all four; a headless `Ctx` knows what
-// `setEnv` declared. The reading is kui's, the policy below is this app's.
+// The third argument is the surface, here for what the OS had to say.
+// `theme()` is the palette as roles — the OS's light or dark picks the base,
+// the OS's accent recolours it, and an unknown appearance is the dark base
+// without claiming the user chose it — so this app names no colour of its
+// own; `metrics()` is the same for sizes. `env().system.motion` is the
+// reading the theme does not cover, and the policy for it is the view's.
 export const view = (model: Model, _window: string, ui: Ctx | KuiWindow) => {
-  const system = ui.env().system;
-  const theme = themeFor(system);
-  // Three-valued for the same reason `appearance` is: test for the request
-  // rather than for truthiness, since `'unknown'` is not a "no".
-  const transition = system.motion === 'reduced' ? 0 : 120;
+  const theme = ui.theme();
+  const metrics = ui.metrics();
+  // Three-valued: test for the request rather than for truthiness, since
+  // `'unknown'` — nobody asked the OS, or the platform has none — is not a
+  // "no", and keeps this app's own 120 ms.
+  const transition = ui.env().system.motion === 'reduced' ? 0 : 120;
   return (
     <box pad={24} gap={16} bg={theme.bg} width="grow" height="grow" onContextMenu={null}>
       <box gap={8}>
-        <text size={24} color={theme.title}>
-          <span bold color={theme.brand}>kui</span> × Node × JSX
+        <text size={24}>
+          <span bold color={theme.accent}>kui</span> × Node × JSX
         </text>
-        {/* `accent` substitutes the OS highlight colour for this node's `bg`
-            and nothing else; where the host cannot tell — a headless core,
-            X11 — the declared `bg` stays. The one prop whose paint depends
-            on the machine, which is why it is opt-in. */}
-        <box accent bg={theme.brand} width={72} height={2} radius={1} />
+        {/* `theme.accent` is already the fallback resolved: the OS colour
+            where the host reports one, kui's blue where it cannot tell. */}
+        <box bg={theme.accent} width={72} height={2} radius={1} />
       </box>
-      <Counter count={model.count} theme={theme} />
-      <edit key="note" label="note" initial="" size={16} width={280} padX={10} padY={6}
-            bg={theme.field} color={theme.text} radius={4} autofocus />
-      <text size={14} color={theme.dim}>{`note: ${model.note || '(empty)'}`}</text>
-      {model.menu ? <Menu at={model.menu} theme={theme} transition={transition} /> : null}
+      <Counter count={model.count} />
+      <edit key="note" label="note" initial="" size={16} width={280}
+            padX={metrics.fieldPadX} padY={metrics.fieldPadY} radius={metrics.radius}
+            bg={theme.sunken} autofocus />
+      <text size={14} color={theme.muted}>{`note: ${model.note || '(empty)'}`}</text>
+      {model.menu
+        ? <Menu at={model.menu} theme={theme} metrics={metrics} transition={transition} />
+        : null}
     </box>
   );
 };
