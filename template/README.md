@@ -73,10 +73,10 @@ drawn. The stock button reads that, `label`, `tooltip`, `disabled`, `index`
 (a row's number in a virtual list, keying the button the way `key` does) and
 `accent`, and nothing else; any other prop on one is dropped with an
 `unknown-prop` warning naming the rows it does read, because its look is its
-own spec. The field is the same kind of thing with one more door: `<input
-label initial>` is the stock field, chrome and all, and reads nothing else,
-so this app's is an `<edit>` — it declares `autofocus` and its own width,
-which the stock field does not read. The
+own spec. The field is the same kind of thing: `<input label initial>` is
+the stock field, chrome and all, `label` its key and its name both, and it
+reads nothing else — a field that needs any other row (`autofocus`, a
+width, `multiline`) is an `<edit>` in a box of its own. The
 count sits in a `live="polite"` box, which is the whole of "read the new
 value when it changes" — no status field in the model and nothing to clear a
 frame later. It goes on the smallest node holding the message, since
@@ -103,17 +103,17 @@ family, and the rest of the table in `props.md` — with the base picked by
 the dark base without claiming the user chose it, and an unknown accent is
 kui's blue, so every role is a value whatever the host could tell and a view
 branches on nothing. This app names no colour of its own: the page is
-`theme.bg`, the field `theme.sunken`, the rule and the word `kui`
-`theme.accent`, the menu `theme.raised` with a `theme.borderStrong` edge —
-which is how the stock context menu paints, since on the light base a float
-cannot be lighter than a white page and separates by its border instead.
-The stock widgets read the same roles, so a `<button>`, a tooltip and a
-`<text>` with no `color` (`theme.fg`) follow the OS with nothing written.
-`ui.metrics()` is the same for sizes: the menu's corner and the field's
-padding are `radius`, `fieldPadX` and `fieldPadY` rather than numbers
-copied from the stock button. An app with a brand colour keeps the OS's
-light and dark and paints its own accent with `ui.setAccent('#…')`;
-`setTheme` pins a palette that follows nothing. An app with colours and
+`theme.bg`, the rule and the word `kui` `theme.accent`, the menu
+`theme.raised` with a `theme.borderStrong` edge — which is how the stock
+context menu paints, since on the light base a float cannot be lighter than
+a white page and separates by its border instead. The stock widgets read
+the same roles, so a `<button>`, an `<input>`, a tooltip and a `<text>`
+with no `color` (`theme.fg`) follow the OS with nothing written.
+`ui.metrics()` is the same for sizes: the menu's corner is `radius` rather
+than a number copied from the stock button, and `fieldPadX` and `fieldPadY`
+are there for a field an app builds from an `<edit>`. An app with a brand
+colour keeps the OS's light and dark and paints its own accent with
+`ui.setAccent('#…')`; `setTheme` pins a palette that follows nothing. An app with colours and
 sizes of its own beside the theme's declares them once —
 `ui.setTokens({ colors: { peach: { light, dark } }, lengths: { sideW: 132 } })`
 — and writes them by name in any colour or length prop, `bg="$peach"`,

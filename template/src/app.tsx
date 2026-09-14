@@ -137,13 +137,11 @@ export const view = (model: Model, _window: string, ui: Ctx | KuiWindow) => {
         <box bg={theme.accent} width={72} height={2} radius={1} />
       </box>
       <Counter count={model.count} />
-      {/* `<input label initial>` is the stock field, chrome and all, and
-          reads nothing else; this one is an `<edit>` because it declares
-          `autofocus` and its own width, with the stock field's padding
-          and corner read off `metrics()` rather than copied as numbers. */}
-      <edit key="note" label="note" initial="" size={16} width={280}
-            padX={metrics.fieldPadX} padY={metrics.fieldPadY} radius={metrics.radius}
-            bg={theme.sunken} autofocus />
+      {/* The stock field, chrome and all: `label` is its key and its
+          accessible name both, `initial` seeds a new editor, and nothing
+          else is read — a field that needs any other row (`autofocus`, a
+          width, `multiline`) is an `<edit>` in a box of its own. */}
+      <input label="note" initial="" />
       <text size={14} color={theme.muted}>{`note: ${model.note || '(empty)'}`}</text>
       {model.menu
         ? <Menu at={model.menu} theme={theme} metrics={metrics} transition={transition} />

@@ -20,9 +20,8 @@ app.click(...center('+1'));
 app.click(...center('-1'));
 console.log(`after +1 +1 -1: count = ${app.model.count}`);
 
-// `autofocus` only takes the keyboard while nothing else holds it, and the
-// clicks above left focus on a button. `focus` takes the label the node's
-// `key` declared, resolved through the last frame — so no rect to click and
+// The clicks above left focus on a button. `focus` takes the label the
+// field declared, resolved through the last frame — so no rect to click and
 // no event from the editor is needed to name it.
 app.ctx.focus('note');
 app.type('hello from node');
