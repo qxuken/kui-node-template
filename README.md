@@ -24,11 +24,11 @@ so a template change that uses a new kui API waits on that kui release:
 publish the library version first, then push the tag here — CI installs the
 scaffold for real and cannot resolve an unpublished floor.
 
-A floor is all it is. `^0.1.0-alpha.11` admits every later alpha of the same
-`0.1.0`, and so does `~0.1.0-alpha.11` — npm's semver treats both the same way
+A floor is all it is. `^0.1.0-alpha.12` admits every later alpha of the same
+`0.1.0`, and so does `~0.1.0-alpha.12` — npm's semver treats both the same way
 for prereleases of one version tuple, so neither spelling pins one. That is
 what a scaffold wants; an app that wants the kui it tested against edits that
-line to an exact version (`"0.1.0-alpha.11"`) and commits `package-lock.json`,
+line to an exact version (`"0.1.0-alpha.12"`) and commits `package-lock.json`,
 which is what holds the version either way.
 
 Where that floor has floated to is `npm view @qxuken/kui version`. It answers

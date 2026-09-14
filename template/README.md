@@ -6,6 +6,7 @@ Elm-style messages as data, a real window from Node.
 ```
 npm install        # @qxuken/kui comes from the registry in .npmrc, prebuilt addon included
 npm start          # window
+npm start -- --motion reduced   # the same window, as a user who asked for less motion
 npm run headless   # a frame driven by hand, no window
 npm run typecheck
 ```
@@ -24,9 +25,10 @@ Windows need nothing extra.
 `Msg` is what this app's nodes send — the `onClick` payloads. `AnyMsg` widens
 it with `CoreMsg`, what the core sends by itself (`changed`, `submit`, `key`,
 `hover`, `drag`, `contextmenu`, `dismiss`, `layout`, `modifiers`, `resize`,
-`window`, `system`, `sound`), and is what the loop delivers: `runWindowed<Model,
-AnyMsg>` and `createApp<Model, AnyMsg>` carry it through to `update`, events
-and `dispatch`, so `update` is one switch over `msg.kind` with no casts.
+`window`, `system`, `scroll`, `selectionrange`, `sound`), and is what the
+loop delivers: `runWindowed<Model, AnyMsg>` and `createApp<Model, AnyMsg>`
+carry it through to `update`, events and `dispatch`, so `update` is one
+switch over `msg.kind` with no casts.
 
 The JSX payload props are the one place the union cannot be inferred: props
 are global, so `onClick` takes any plain data unless the app registers its
@@ -67,10 +69,14 @@ screen reader cannot name is a warning, which is why the editor has a `label`
 and the menu one too. A name is not always the whole of it: `+1` is its own
 sentence, `reset` names an action and not its object, so both reset buttons
 carry a `description` — the rest of it, spoken after the name and never
-drawn. The stock button reads that, `label`, `tooltip`, `disabled` and
-`accent` and nothing else; any other prop on one is dropped with an
+drawn. The stock button reads that, `label`, `tooltip`, `disabled`, `index`
+(a row's number in a virtual list, keying the button the way `key` does) and
+`accent`, and nothing else; any other prop on one is dropped with an
 `unknown-prop` warning naming the rows it does read, because its look is its
-own spec. The
+own spec. The field is the same kind of thing with one more door: `<input
+label initial>` is the stock field, chrome and all, and reads nothing else,
+so this app's is an `<edit>` — it declares `autofocus` and its own width,
+which the stock field does not read. The
 count sits in a `live="polite"` box, which is the whole of "read the new
 value when it changes" — no status field in the model and nothing to clear a
 frame later. It goes on the smallest node holding the message, since
@@ -83,7 +89,12 @@ everything inside a live node is live.
 asked for less animation) and `locale` (a BCP-47 tag). A window fills in all
 four before the first `view` on macOS and Windows; on X11 and Wayland the
 locale comes from `LANG` and the rest read `'unknown'`, as all four do in a
-headless core until `setEnv` says otherwise.
+headless core until `setEnv` says otherwise. A fifth row, `assistive`, is a
+fact of the same shape rather than a setting: `'listening'` once an
+accessibility client has asked the window for its tree, `'none'` while the
+bridge is up and nobody has, `'unknown'` where there is no bridge to ask —
+headless, always. It is the one reading that changes what a view *says*
+rather than what it draws, and this app says the same thing either way.
 
 `ui.theme()` is the first two, already acted on: a palette of named roles —
 `bg`, `surface`, `raised`, `sunken`, `border`, `fg`, `muted`, the accent
@@ -102,15 +113,22 @@ The stock widgets read the same roles, so a `<button>`, a tooltip and a
 padding are `radius`, `fieldPadX` and `fieldPadY` rather than numbers
 copied from the stock button. An app with a brand colour keeps the OS's
 light and dark and paints its own accent with `ui.setAccent('#…')`;
-`setTheme` pins a palette that follows nothing.
+`setTheme` pins a palette that follows nothing. An app with colours and
+sizes of its own beside the theme's declares them once —
+`ui.setTokens({ colors: { peach: { light, dark } }, lengths: { sideW: 132 } })`
+— and writes them by name in any colour or length prop, `bg="$peach"`,
+`width="$sideW"`, with a colour token's two halves picked by the appearance
+the way the roles are.
 
-`accent` on the stock button is the one prop whose paint depends on the
-machine, which is why it is opt-in: `+1` carries it, and paints from the
-accent family — the fill, the hover and pressed shades under it, and a black
-or white label by the accent's luminance, so a yellow accent still reads.
-Any other node can carry `accent` too, which substitutes `theme.accent` for
-its `bg` and nothing else; the rule under the title spells that as
-`bg={theme.accent}`, the same colour read from the same table.
+The stock button paints from the accent family — the fill, the hover and
+pressed shades under it, and a black or white label by the accent's
+luminance, so a yellow accent still reads — and declares nothing for it:
+every `<button>` here is `theme.accent`, the OS's colour on a Mac. (Until
+alpha.11 only a button declaring `accent` was, and `+1` carried it; the
+prop is still read on a button and changes nothing there.) On any other
+node `accent` substitutes `theme.accent` for its `bg` and nothing else; the
+rule under the title spells that as `bg={theme.accent}`, the same colour
+read from the same table.
 
 `motion` is the reading the theme does not cover. `'unknown'` is a third
 answer and not a missing second one, which is why the enum spells it and why
@@ -119,7 +137,14 @@ it is tested with `=== 'reduced'` rather than for truthiness: a
 asked", and a view branching on that false animates for a user who asked it
 not to. kui shortens no animation on its own, because only the view knows
 which of its animations carries meaning rather than decoration; the policy
-is one line of `view`, the menu's `transition` dropped to zero.
+is one line of `view`, the menu's `transition` dropped to zero. `npm start
+-- --motion reduced` is how to look at that branch in a window on a machine
+whose owner did not ask for it: `src/main.tsx` hands `runWindowed` a
+`system: { motion }` pin, the same partial `setEnv` takes headless, merged
+inside the runner's per-frame write so it holds. A field left out of the
+pin keeps following the OS, and a change to it still arrives as the
+`system` message. It is an option rather than an environment variable so
+that a shipped app's motion is its own code's decision.
 
 A setting the user changes while the window is open arrives as a `system`
 message on the root, carrying the whole of `env.system` as it now reads. It
@@ -128,6 +153,13 @@ a redraw re-lowers the tree it was handed — so without it the palette the
 first frame derived would stand for the life of the window. `update`
 returns the model unchanged for it, which is all it takes: the reading lives
 on `ui`, and `view` reads it again.
+
+On macOS the window also comes with the standard bar — the application
+menu, an Edit menu whose rows replay the ⌘ chords the runner performs, a
+Window menu with Minimize, Zoom and Enter Full Screen — without this app
+declaring one, so ⌘C and ⌘V in the field and the tiling shortcuts work as
+they do in any other app. An app that declares its own bar gets exactly
+what it declared.
 
 `src/headless.tsx` finds controls through `app.accessTree()` by the names a
 reader would say rather than hunting the display list, and exits non-zero if
@@ -158,9 +190,11 @@ declared one, and checks each against the role it should be — the page
 `theme.bg`, the button's fill `theme.accent`, its label `theme.onAccent`,
 which goes black under the yellow — then opens the menu again and gets
 `runOut` back as 0 ms where full motion took 128, the app's own answer to
-the setting. The one thing it cannot show is the `system` message: nothing
-changed behind the app's back, the test wrote the reading itself and
-rendered, so that message is a window's alone.
+the setting. `+1` is read because it stands for every stock button now:
+the fill it checks is the one `-1` and `reset` paint too. The one thing it
+cannot show is the `system` message: nothing changed behind the app's back,
+the test wrote the reading itself and rendered, so that message is a
+window's alone.
 
 The full prop, element and event reference ships with the library as
 `node_modules/@qxuken/kui/props.md`, sorted by name, and `howto.md` beside it

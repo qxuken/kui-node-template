@@ -83,10 +83,11 @@ const report = (who: string) => {
 report('appearance unknown');
 
 // An unknown appearance is the dark base; a declared light one with a yellow
-// accent is a light page, the rule and `+1` in yellow, and `+1`'s label black
-// — the readability arithmetic this app never wrote. In a window the same
-// change arrives as a `system` message too, so `view` runs again; here the
-// test wrote the reading itself, and renders.
+// accent is a light page, the rule and every stock button in yellow, and
+// their labels black — the readability arithmetic this app never wrote.
+// `+1` stands for all three: a stock button declares nothing for its paint.
+// In a window the same change arrives as a `system` message too, so `view`
+// runs again; here the test wrote the reading itself, and renders.
 app.ctx.setEnv({ system: { appearance: 'light', accent: '#ffcc00', motion: 'reduced' } });
 app.render();
 report('appearance light, accent #ffcc00');
@@ -94,6 +95,7 @@ report('appearance light, accent #ffcc00');
 // `motion: 'reduced'` is the user asking for less animation, and dropping the
 // menu's `transition` to zero is this app answering — kui shortens nothing on
 // its own. The menu now opens settled, so `runOut` has nothing to advance.
+// The same reading pinned on a window is `npm start -- --motion reduced`.
 app.rightClick(500, 400);
 console.log(`reduced motion: menu settles in ${app.runOut()}ms, full motion took ${fullMotionMs}ms`);
 

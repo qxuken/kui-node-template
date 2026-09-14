@@ -83,18 +83,20 @@ function Menu({ at, theme, metrics, transition }: {
 function Counter({ count }: { count: number }) {
   return (
     <box dir="row" gap={12} crossAlign="center">
-      {/* `accent` on the stock button is a question and not a colour: it
-          paints from the theme's accent family — the OS highlight where
-          the host reports one, kui's blue otherwise — takes its hover and
-          pressed shades from it, and picks a black or white label by its
-          luminance, so a yellow accent still reads. */}
-      <button onClick={{ kind: 'add', by: 1 }} accent>+1</button>
+      {/* A stock button paints from the theme's accent family — the OS
+          highlight where the host reports one, kui's blue otherwise —
+          takes its hover and pressed shades from it, and picks a black or
+          white label by its luminance, so a yellow accent still reads.
+          Nothing is declared for it: `accent` on a button changes nothing
+          since alpha.12, because it is the accent already. */}
+      <button onClick={{ kind: 'add', by: 1 }}>+1</button>
       <button onClick={{ kind: 'add', by: -1 }}>-1</button>
       {/* `+1` is its own sentence; `reset` names an action and not its
           object, so the rest of it is a `description` — spoken after the
           name, never drawn. The stock button reads that, `label`,
-          `tooltip`, `disabled` and `accent`, and drops any other prop with
-          an `unknown-prop` warning, because its look is its own spec. */}
+          `tooltip`, `disabled`, `index` and `accent`, and drops any other
+          prop with an `unknown-prop` warning, because its look is its own
+          spec. */}
       <button onClick={{ kind: 'reset' }} description={resetHint}>reset</button>
       {/* A live region: a screen reader reads the new count when it
           changes, without the user going looking for it. On the smallest
@@ -135,6 +137,10 @@ export const view = (model: Model, _window: string, ui: Ctx | KuiWindow) => {
         <box bg={theme.accent} width={72} height={2} radius={1} />
       </box>
       <Counter count={model.count} />
+      {/* `<input label initial>` is the stock field, chrome and all, and
+          reads nothing else; this one is an `<edit>` because it declares
+          `autofocus` and its own width, with the stock field's padding
+          and corner read off `metrics()` rather than copied as numbers. */}
       <edit key="note" label="note" initial="" size={16} width={280}
             padX={metrics.fieldPadX} padY={metrics.fieldPadY} radius={metrics.radius}
             bg={theme.sunken} autofocus />
