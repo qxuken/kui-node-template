@@ -20,6 +20,14 @@ app.click(...center('+1'));
 app.click(...center('-1'));
 console.log(`after +1 +1 -1: count = ${app.model.count}`);
 
+// The pointer shape is declared, not derived: the arrow over everything
+// but text unless a node says `cursor`, and the stock button says
+// `pointer` for itself. The last click left the pointer on `-1`, so the
+// first reading is the button's; then the page, which declares nothing,
+// and the field, the one shape the core still implies.
+const shapeAt = (x: number, y: number) => { app.ctx.cursor(x, y); return app.ctx.cursorShape(); };
+console.log(`cursor: -1 ${app.ctx.cursorShape()}, page ${shapeAt(600, 460)}, note ${shapeAt(...center('note'))}`);
+
 // The clicks above left focus on a button. `focus` takes the label the
 // field declared, resolved through the last frame — so no rect to click and
 // no event from the editor is needed to name it.

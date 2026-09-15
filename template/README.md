@@ -24,8 +24,9 @@ Windows need nothing extra.
 
 `Msg` is what this app's nodes send — the `onClick` payloads. `AnyMsg` widens
 it with `CoreMsg`, what the core sends by itself (`changed`, `submit`, `key`,
-`hover`, `drag`, `contextmenu`, `dismiss`, `layout`, `modifiers`, `resize`,
-`window`, `system`, `scroll`, `selectionrange`, `sound`), and is what the
+`text`, `preedit`, `hover`, `drag`, `drop`, `contextmenu`, `menu`,
+`forceclick`, `dismiss`, `layout`, `modifiers`, `resize`, `window`,
+`system`, `scroll`, `selectionrange`, `sound`, `access`), and is what the
 loop delivers: `runWindowed<Model, AnyMsg>` and `createApp<Model, AnyMsg>`
 carry it through to `update`, events and `dispatch`, so `update` is one
 switch over `msg.kind` with no casts.
@@ -34,7 +35,10 @@ The JSX payload props are the one place the union cannot be inferred: props
 are global, so `onClick` takes any plain data unless the app registers its
 own. That is all `src/kui.d.ts` does. A tag prop also takes `null` —
 `onContextMenu={null}` here — which declares the behaviour and leaves the
-events without a tag.
+events without a tag. `onDrop` is a tag prop of the same shape that makes
+its node a zone for files dragged in from the OS — the paths arrive as the
+`drop` message, in four phases, and `dropBg` lights the zone while they
+hover — which a counter has no use for.
 
 ## One `update`, both drivers
 
@@ -71,12 +75,12 @@ sentence, `reset` names an action and not its object, so both reset buttons
 carry a `description` — the rest of it, spoken after the name and never
 drawn. The stock button reads that, `label`, `tooltip`, `disabled`, `index`
 (a row's number in a virtual list, keying the button the way `key` does) and
-`accent`, and nothing else; any other prop on one is dropped with an
-`unknown-prop` warning naming the rows it does read, because its look is its
-own spec. The field is the same kind of thing: `<input label initial>` is
-the stock field, chrome and all, `label` its key and its name both, and it
-reads nothing else — a field that needs any other row (`autofocus`, a
-width, `multiline`) is an `<edit>` in a box of its own. The
+`accent`, and nothing else; any other prop on one — `cursor` included — is
+dropped with an `unknown-prop` warning naming the rows it does read, because
+its look is its own spec. The field is the same kind of thing: `<input label
+initial>` is the stock field, chrome and all, `label` its key and its name
+both, and it reads nothing else — a field that needs any other row
+(`autofocus`, a width, `multiline`) is an `<edit>` in a box of its own. The
 count sits in a `live="polite"` box, which is the whole of "read the new
 value when it changes" — no status field in the model and nothing to clear a
 frame later. It goes on the smallest node holding the message, since
@@ -130,6 +134,19 @@ node `accent` substitutes `theme.accent` for its `bg` and nothing else; the
 rule under the title spells that as `bg={theme.accent}`, the same colour
 read from the same table.
 
+The pointer is declared the same way, from alpha.14. Over an editor or a
+`selectable` scope it is the I-beam, the one shape the core still implies
+because the text itself says it can be taken; over everything else it is
+the arrow — an `onClick` or `focusable` box of the app's own included, as
+a native button, a tab or a list row is — unless the node says `cursor`:
+`pointer` for a hand, `grab` for a handle and `grabbing` while its drag
+runs, `notAllowed`, the four resize arrows. The stock button says
+`pointer` for itself, so every `<button>` here has the hand it had, and
+`cursor` on one is dropped like any other look row. (The `cursor` row in
+`props.md` is the rule; the doc comment on `cursorShape()` in `index.d.ts`
+still spells the alpha.13 derivation as of alpha.14, and the headless
+readback below is what the core answers.)
+
 `motion` is the reading the theme does not cover. `'unknown'` is a third
 answer and not a missing second one, which is why the enum spells it and why
 it is tested with `=== 'reduced'` rather than for truthiness: a
@@ -179,7 +196,17 @@ the milliseconds it took; a test that reads a settled frame asks for one
 rather than writing the loop. With the menu settled it reads both reset
 buttons back off the tree, descriptions and all — a `modal` marks the node in
 effect rather than pruning what is behind it, so both are there, and what
-tells them apart is the node each is inside.
+tells them apart is the node each is inside. `app.ctx.owed()` is the
+question beside the wait — which of transitions, keyframe cycles,
+departing nodes, requested frames and autoscroll the last frame left owed
+— for a suite with a `repeat` cycle that `runOut` could only ever time out
+on; this app has none, so it waits.
+
+Before any of that it reads the pointer: `app.ctx.cursor(x, y)` puts it
+somewhere and `app.ctx.cursorShape()` is the shape a window would set
+there — `pointer` over `-1`, where the last click left it, `default` over
+the page, `text` over the field — which is the alpha.14 rule read back
+rather than taken on trust.
 
 Last it declares the user: `app.ctx.setEnv({system: {...}})` writes down what
 a window reads off the machine, so a suite can render the frame a light-mode

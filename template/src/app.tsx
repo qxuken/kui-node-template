@@ -88,15 +88,19 @@ function Counter({ count }: { count: number }) {
           takes its hover and pressed shades from it, and picks a black or
           white label by its luminance, so a yellow accent still reads.
           Nothing is declared for it: `accent` on a button changes nothing
-          since alpha.12, because it is the accent already. */}
+          since alpha.12, because it is the accent already. The hand over
+          it is the button's own declaration too, since alpha.14 — the
+          pointer is the arrow over everything but text unless a node
+          says `cursor`, a clickable box of this app's included, as a
+          native control is. */}
       <button onClick={{ kind: 'add', by: 1 }}>+1</button>
       <button onClick={{ kind: 'add', by: -1 }}>-1</button>
       {/* `+1` is its own sentence; `reset` names an action and not its
           object, so the rest of it is a `description` — spoken after the
           name, never drawn. The stock button reads that, `label`,
           `tooltip`, `disabled`, `index` and `accent`, and drops any other
-          prop with an `unknown-prop` warning, because its look is its own
-          spec. */}
+          prop — `cursor` among them — with an `unknown-prop` warning,
+          because its look is its own spec. */}
       <button onClick={{ kind: 'reset' }} description={resetHint}>reset</button>
       {/* A live region: a screen reader reads the new count when it
           changes, without the user going looking for it. On the smallest
