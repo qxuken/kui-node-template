@@ -2,7 +2,14 @@
 import { createApp, decodeQuads } from '@qxuken/kui';
 import { init, update, view, type Model, type AnyMsg } from './app.js';
 
-const app = createApp<Model, AnyMsg>({ init, update, view }, { width: 640, height: 480 });
+// `teardown` is what the window runs as it goes — the one thing that runs
+// on ⌘Q — so a drive keeps what it was handed and asserts on it at the end,
+// where `src/main.tsx` prints it.
+let kept: Model | undefined;
+let tornDown = 0;
+const teardown = (model: Model) => { kept = model; tornDown += 1; };
+
+const app = createApp<Model, AnyMsg>({ init, update, view, teardown }, { width: 640, height: 480 });
 
 const stats = app.render();
 console.log(`frame: ${stats.quadCount} quads @ ${stats.viewportW}x${stats.viewportH}`);
@@ -105,6 +112,13 @@ report('appearance light, accent #ffcc00');
 // The same reading pinned on a window is `npm start -- --motion reduced`.
 app.rightClick(500, 400);
 console.log(`reduced motion: menu settles in ${app.runOut()}ms, full motion took ${fullMotionMs}ms`);
+
+// A headless drive ends the way a window does: `app.teardown()` runs the
+// config's `teardown` with the model as it stands, once — a second call is
+// nothing, as a window that is already gone has nothing more to say.
+app.teardown();
+app.teardown();
+console.log(`teardown ran ${tornDown} time(s), kept count = ${kept?.count}, note = "${kept?.note}"`);
 
 if (app.warnings.length > 0) {
   console.error(`${app.warnings.length} warning(s)`);

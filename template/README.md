@@ -38,7 +38,13 @@ own. That is all `src/kui.d.ts` does. A tag prop also takes `null` —
 events without a tag. `onDrop` is a tag prop of the same shape that makes
 its node a zone for files dragged in from the OS — the paths arrive as the
 `drop` message, in four phases, and `dropBg` lights the zone while they
-hover — which a counter has no use for.
+hover — which a counter has no use for. Nor for the two stock things
+alpha.16 adds: `<select label options current>`, a field showing the choice
+in force that drops the core's own menu of the options, whose pick arrives
+as the `menu` message on the field's key — the same message a menu row
+posts, and the app holds no open state; and `<box dir="table">`, a column
+whose rows' children line up in columns, so a list's values sit behind its
+longest label with nothing measured and no width picked by hand.
 
 ## One `update`, both drivers
 
@@ -46,7 +52,7 @@ hover — which a counter has no use for.
 `Ctx` under `createApp`, the `KuiWindow` under `runWindowed`. It is how
 `changed` reads an editor back (`ui.editText(ev.key)` — the runtime owns the
 buffer), and where `focus`, `play`, `measureText` and `setWindowSize` live.
-The config is `{ init, update, view }` on either side.
+The config is `{ init, update, view, teardown }` on either side.
 
 `init` and `view` can take the same surface where they need it — `init: (ui)
 => ...` runs after `setup`, so a first model measures against the fonts it
@@ -144,7 +150,7 @@ runs, `notAllowed`, the four resize arrows. The stock button says
 `pointer` for itself, so every `<button>` here has the hand it had, and
 `cursor` on one is dropped like any other look row. (The `cursor` row in
 `props.md` is the rule; the doc comment on `cursorShape()` in `index.d.ts`
-still spells the alpha.13 derivation as of alpha.14, and the headless
+still spells the alpha.13 derivation as of alpha.16, and the headless
 readback below is what the core answers.)
 
 `motion` is the reading the theme does not cover. `'unknown'` is a third
@@ -178,6 +184,22 @@ declaring one, so ⌘C and ⌘V in the field and the tiling shortcuts work as
 they do in any other app. An app that declares its own bar gets exactly
 what it declared.
 
+## What runs as the window goes
+
+`teardown(model)`, the config's fourth field from alpha.16, runs once as the
+main window goes for good — its close button, `win.close()`, Quit from the
+menu or the dock — with the model as it stands, from inside the pump that
+saw it go and before `runWindowed` resolves. It exists because on a Mac ⌘Q
+ends the process inside that pump: the promise never resolves, and nothing
+after `await runWindowed(...)` runs, not even `process.on('exit')` — so a
+session, a draft or a position saved on the line after the `await` was
+never saved by a user who quit the way Mac users quit. `teardown` is the
+only thing an app runs on ⌘Q, which is what makes it the place to save.
+The window is gone by then: nothing draws, and its doors are not for it.
+`src/main.tsx` prints the model from it, and prints again after the
+`await` — the second line is the close button's alone. Headless,
+`app.teardown()` runs the same function, once; a second call is nothing.
+
 `src/headless.tsx` finds controls through `app.accessTree()` by the names a
 reader would say rather than hunting the display list, and exits non-zero if
 the core raised a warning. Two things it does not have to do by hand:
@@ -208,7 +230,7 @@ there — `pointer` over `-1`, where the last click left it, `default` over
 the page, `text` over the field — which is the alpha.14 rule read back
 rather than taken on trust.
 
-Last it declares the user: `app.ctx.setEnv({system: {...}})` writes down what
+Then it declares the user: `app.ctx.setEnv({system: {...}})` writes down what
 a window reads off the machine, so a suite can render the frame a light-mode
 reader with a yellow accent and reduced motion would get, and `app.ctx.theme()`
 is the palette that reading derived. It reads the root quad and the `+1`
@@ -222,6 +244,12 @@ the fill it checks is the one `-1` and `reset` paint too. The one thing it
 cannot show is the `system` message: nothing changed behind the app's back,
 the test wrote the reading itself and rendered, so that message is a
 window's alone.
+
+Last of all it ends the way a window does: `app.teardown()` hands the
+`teardown` the config declared the model as it stands — count 11, the note
+typed above — and hands it nothing on a second call, which the drive
+counts. That is the whole of "what would this app have kept had the user
+quit here", asserted without a window.
 
 The full prop, element and event reference ships with the library as
 `node_modules/@qxuken/kui/props.md`, sorted by name, and `howto.md` beside it
