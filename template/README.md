@@ -150,7 +150,7 @@ runs, `notAllowed`, the four resize arrows. The stock button says
 `pointer` for itself, so every `<button>` here has the hand it had, and
 `cursor` on one is dropped like any other look row. (The `cursor` row in
 `props.md` is the rule; the doc comment on `cursorShape()` in `index.d.ts`
-still spells the alpha.13 derivation as of alpha.16, and the headless
+still spells the alpha.13 derivation as of alpha.18, and the headless
 readback below is what the core answers.)
 
 `motion` is the reading the theme does not cover. `'unknown'` is a third
@@ -183,6 +183,16 @@ Window menu with Minimize, Zoom and Enter Full Screen — without this app
 declaring one, so ⌘C and ⌘V in the field and the tiling shortcuts work as
 they do in any other app. An app that declares its own bar gets exactly
 what it declared.
+
+The window's icon is the one piece of chrome an app has to supply, and
+this one supplies none. `runWindowed`'s `icon` option (from alpha.18) gives
+every window the app opens the same picture, `{ rgba, width, height }` in
+straight RGBA with a `Buffer` as the pixels. Windows puts it in the title
+bar, Alt-Tab and the taskbar, and X11 in the window manager. A Mac draws
+the bundle's `.icns` and Wayland the `.desktop` file's, and neither has a
+window icon at all. `resource` names an icon linked into the executable,
+which under `node.exe` is Node's own, so it is for a packaged app. A
+counter has no picture to give it, so it keeps the platform's default.
 
 ## What runs as the window goes
 
@@ -220,8 +230,8 @@ buttons back off the tree, descriptions and all — a `modal` marks the node in
 effect rather than pruning what is behind it, so both are there, and what
 tells them apart is the node each is inside. `app.ctx.owed()` is the
 question beside the wait — which of transitions, keyframe cycles,
-departing nodes, requested frames and autoscroll the last frame left owed
-— for a suite with a `repeat` cycle that `runOut` could only ever time out
+departing nodes, requested frames, autoscroll and a scroller easing to a
+`reveal` the last frame left owed — for a suite with a `repeat` cycle that `runOut` could only ever time out
 on; this app has none, so it waits.
 
 Before any of that it reads the pointer: `app.ctx.cursor(x, y)` puts it
