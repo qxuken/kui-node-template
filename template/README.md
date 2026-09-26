@@ -26,10 +26,10 @@ Windows need nothing extra.
 it with `CoreMsg`, what the core sends by itself (`changed`, `submit`, `key`,
 `text`, `preedit`, `hover`, `drag`, `drop`, `contextmenu`, `menu`,
 `forceclick`, `dismiss`, `layout`, `modifiers`, `resize`, `window`,
-`system`, `scroll`, `selectionrange`, `sound`, `access`), and is what the
-loop delivers: `runWindowed<Model, AnyMsg>` and `createApp<Model, AnyMsg>`
-carry it through to `update`, events and `dispatch`, so `update` is one
-switch over `msg.kind` with no casts.
+`system`, `scroll`, `selectionrange`, `sound`, `access`, `change`,
+`files`), and is what the loop delivers: `runWindowed<Model, AnyMsg>` and
+`createApp<Model, AnyMsg>` carry it through to `update`, events and
+`dispatch`, so `update` is one switch over `msg.kind` with no casts.
 
 The JSX payload props are the one place the union cannot be inferred: props
 are global, so `onClick` takes any plain data unless the app registers its
@@ -38,13 +38,23 @@ own. That is all `src/kui.d.ts` does. A tag prop also takes `null` —
 events without a tag. `onDrop` is a tag prop of the same shape that makes
 its node a zone for files dragged in from the OS — the paths arrive as the
 `drop` message, in four phases, and `dropBg` lights the zone while they
-hover — which a counter has no use for. Nor for the two stock things
+hover — which a counter has no use for. Its sibling from alpha.19 is
+`files`, the answer to the Open, Save or folder dialog `ui.requestFiles(...)`
+asked the platform for: `paths` shaped as a `drop`'s, so one handler takes
+both, and empty when the user cancelled. Nor for the two stock things
 alpha.16 adds: `<select label options current>`, a field showing the choice
 in force that drops the core's own menu of the options, whose pick arrives
 as the `menu` message on the field's key — the same message a menu row
 posts, and the app holds no open state; and `<box dir="table">`, a column
 whose rows' children line up in columns, so a list's values sit behind its
-longest label with nothing measured and no width picked by hand.
+longest label with nothing measured and no width picked by hand. Nor for
+alpha.19's: `<checkbox>`, `<radio>` and `<switch>`, drawn from the `checked`
+the view declares and posting their `onClick`; `<radioGroup>`, one Tab stop
+whose arrows move the choice; and `<slider>`, whose `onChange` has the core
+turn a press, a drag or a key into a value already clamped and snapped to
+`valueStep`, posted as `change` — a slider's proposal, where `changed` is an
+editor's — for the view to declare back as `valueNow`. Each holds no state
+of its own and reads a closed set of rows, as the button does.
 
 ## One `update`, both drivers
 
@@ -57,13 +67,15 @@ The config is `{ init, update, view, teardown }` on either side.
 `init` and `view` can take the same surface where they need it — `init: (ui)
 => ...` runs after `setup`, so a first model measures against the fonts it
 registered and reads the size the window really opened at instead of a
-constant a `resize` handler has to correct; `view(model, window, ui)` is what
-lets a tree size a column to its widest label with `ui.measureText(...)` while
-it is being built. Both are optional. This app's `init` is a value; its `view`
-takes the surface for the palette, the sizes and the one OS reading the
-palette does not cover (`theme()`, `metrics()`, `env().system.motion`), and
-ignores the window name in between — that is `'main'` until an app declares
-a second window.
+constant a `resize` handler has to correct — and from alpha.19 `ui.size()`
+answers headless too, with the `width` and `height` handed to `createApp`
+before its first frame, so one `init` fits one first model under both
+drivers; `view(model, window, ui)` is what lets a tree size a column to its
+widest label with `ui.measureText(...)` while it is being built. Both are
+optional. This app's `init` is a value; its `view` takes the surface for
+the palette, the sizes and the one OS reading the palette does not cover
+(`theme()`, `metrics()`, `env().system.motion`), and ignores the window name
+in between — that is `'main'` until an app declares a second window.
 
 ## What the scaffold shows
 
@@ -149,9 +161,10 @@ a native button, a tab or a list row is — unless the node says `cursor`:
 runs, `notAllowed`, the four resize arrows. The stock button says
 `pointer` for itself, so every `<button>` here has the hand it had, and
 `cursor` on one is dropped like any other look row. (The `cursor` row in
-`props.md` is the rule; the doc comment on `cursorShape()` in `index.d.ts`
-still spells the alpha.13 derivation as of alpha.18, and the headless
-readback below is what the core answers.)
+`props.md` is the rule, and from alpha.19 the doc comment on
+`cursorShape()` in `index.d.ts` and the package README say it too; until
+then both still spelled the alpha.13 derivation. The headless readback
+below is what the core answers either way.)
 
 `motion` is the reading the theme does not cover. `'unknown'` is a third
 answer and not a missing second one, which is why the enum spells it and why
