@@ -27,9 +27,10 @@ it with `CoreMsg`, what the core sends by itself (`changed`, `submit`, `key`,
 `text`, `preedit`, `hover`, `drag`, `drop`, `contextmenu`, `menu`,
 `forceclick`, `dismiss`, `layout`, `modifiers`, `resize`, `window`,
 `system`, `scroll`, `selectionrange`, `sound`, `access`, `change`,
-`files`), and is what the loop delivers: `runWindowed<Model, AnyMsg>` and
-`createApp<Model, AnyMsg>` carry it through to `update`, events and
-`dispatch`, so `update` is one switch over `msg.kind` with no casts.
+`files`, `button`, `focus`), and is what the loop delivers:
+`runWindowed<Model, AnyMsg>` and `createApp<Model, AnyMsg>` carry it
+through to `update`, events and `dispatch`, so `update` is one switch over
+`msg.kind` with no casts.
 
 The JSX payload props are the one place the union cannot be inferred: props
 are global, so `onClick` takes any plain data unless the app registers its
@@ -55,6 +56,18 @@ turn a press, a drag or a key into a value already clamped and snapped to
 `valueStep`, posted as `change` — a slider's proposal, where `changed` is an
 editor's — for the view to declare back as `valueNow`. Each holds no state
 of its own and reads a closed set of rows, as the button does.
+
+The two newest members answer two more tag props of the same shape, from
+alpha.22, and a counter has no use for either. `onFocus` posts `focus` as
+the keyboard enters or leaves the node's subtree, `phase` `in` or `out`
+and `by` saying what moved it (`pointer`, `keyboard`, `assistive`,
+`program`), so a pane that cares whether it holds the keyboard hears so
+instead of diffing the focused key every frame. The window says the same
+of itself as two more `window` phases, `focused` and `blurred`.
+`onButton` posts `button` for the middle and secondary buttons, press,
+move and release, captured by the node while the button is held. A
+claimed secondary press is that `button` *instead of* a `contextmenu`,
+which is why the page here says `onContextMenu` and not `onButton`.
 
 ## One `update`, both drivers
 
