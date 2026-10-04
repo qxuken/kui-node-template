@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // `npm create @qxuken/kui-node <dir>` runs this: it copies template/ into <dir>,
-// names the package after the directory and restores the dotfiles that npm
-// refuses to publish (.gitignore and .npmrc travel as _gitignore / _npmrc).
+// names the package after the directory and restores the dotfile that npm
+// refuses to publish (.gitignore travels as _gitignore).
 import { cpSync, existsSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -11,9 +11,8 @@ if (args.includes('--help') || args.includes('-h')) {
   console.log(`usage: npm create @qxuken/kui-node [dir]
 
 Creates a kui Node app in <dir> (default: kui-app): a counter in a real
-window, JSX views compiled by esbuild, kui installed from the Forgejo npm
-registry via the generated .npmrc (scoped to @qxuken, so everything
-else still comes from npmjs).`);
+window, JSX views compiled by esbuild, kui installed from npm with its
+prebuilt addon.`);
   process.exit(0);
 }
 
@@ -26,9 +25,7 @@ if (existsSync(dir) && readdirSync(dir).length > 0) {
 
 const templateDir = path.join(path.dirname(fileURLToPath(import.meta.url)), 'template');
 cpSync(templateDir, dir, { recursive: true });
-for (const dotfile of ['gitignore', 'npmrc']) {
-  renameSync(path.join(dir, `_${dotfile}`), path.join(dir, `.${dotfile}`));
-}
+renameSync(path.join(dir, '_gitignore'), path.join(dir, '.gitignore'));
 
 const pkgPath = path.join(dir, 'package.json');
 const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));

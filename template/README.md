@@ -1,10 +1,10 @@
 # kui app
 
-JSX views lowered into [kui](https://drydock9.qxuken.dev/qxuken/kui)'s IR,
+JSX views lowered into [kui](https://github.com/qxuken/kui)'s IR,
 Elm-style messages as data, a real window from Node.
 
 ```
-npm install        # @qxuken/kui comes from the registry in .npmrc, prebuilt addon included
+npm install        # @qxuken/kui comes from npm, prebuilt addon included
 npm start          # window
 npm start -- --motion reduced   # the same window, as a user who asked for less motion
 npm run headless   # a frame driven by hand, no window

@@ -1,8 +1,10 @@
 # check: scaffold an app with the initializer exactly as `npm create` would,
-# install it (kui comes from the Forgejo registry through the generated
-# .npmrc, esbuild/typescript from npmjs), run it headlessly and typecheck.
-# Pushing a `v*` tag additionally publishes @qxuken/create-kui-node to the
-# Forgejo npm registry; needs the PACKAGES_TOKEN secret (write:packages).
+# install it (kui, esbuild and typescript all from npmjs), run it headlessly
+# and typecheck. Pushing a `v*` tag additionally publishes
+# @qxuken/create-kui-node to the Forgejo npm registry; needs the
+# PACKAGES_TOKEN secret (write:packages). The npmjs copy, the one `npm
+# create` reads by default, is staged by GitHub
+# (.github/workflows/release.yml).
 name: ci
 
 on:
@@ -38,7 +40,6 @@ jobs:
           node index.mjs --help
           node index.mjs /tmp/scaffold/my-app
           cd /tmp/scaffold/my-app
-          cat .npmrc
           npm install
           npm run headless
           npm run typecheck
