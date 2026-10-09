@@ -6,18 +6,14 @@ export type Model = {
   menu: { x: number; y: number } | null;
 };
 
-// What this app's nodes send, and what `src/kui.d.ts` registers with the
-// JSX props. `AnyMsg` adds what the core sends by itself, so `update` is one
-// switch with no casts.
+// What this app's nodes send (registered with JSX in `src/kui.d.ts`), plus
+// what the core sends by itself.
 export type Msg = { kind: 'add'; by: number } | { kind: 'reset' };
 export type AnyMsg = Msg | CoreMsg;
 
 export const init: Model = { count: 0, note: '', menu: null };
 
-// `ui` is the surface the loop drives: the `Ctx` headless, the `KuiWindow`
-// under a window. Both pass it, so one `update` serves both. `init` can take
-// it too — `init: (ui) => ...` for a first model measured against the real
-// window size.
+// `ui` is the headless `Ctx` or the `KuiWindow`, so one `update` serves both.
 export function update(
   model: Model,
   msg: AnyMsg,
@@ -35,28 +31,19 @@ export function update(
       return { ...model, menu: { x: msg.x, y: msg.y } };
     case 'dismiss':
       return { ...model, menu: null };
-    // The user changed an OS setting while the window was open. The model
-    // holds none of it — `view` reads `ui.theme()` and `ui.env()` — but a
-    // window's `view` only runs when `update` returns a model, so returning
-    // this one unchanged is what repaints the palette the OS just moved.
+    // An OS setting changed. `view` reads it from `ui`; returning the model
+    // is what makes it run again.
     case 'system':
       return model;
   }
 }
 
-// Both resets are the same action, so the sentence is one string. With the
-// menu open the access tree carries two buttons named `reset`; what tells
-// them apart is the dialog the second one is inside, not the sentence.
+// Spoken after the name `reset`, on both reset buttons.
 const resetHint = 'sets the count back to zero';
 
-// `modal` scopes the Tab ring, the hit list and the access tree to this
-// subtree, sends the `dismiss` above on Escape or an outside press, and
-// hands focus back where it found it.
-//
-// A float paints `raised` with a `borderStrong` edge, which is what the
-// stock context menu does: on the dark base a float is lighter than the
-// page, on the light one it cannot be and separates by its border instead.
-// One spelling for both, and no shadow to weigh by appearance.
+// `modal` scopes Tab, hit testing and the access tree to this subtree, sends
+// `dismiss` on Escape or an outside press, and restores focus. `raised` with
+// a `borderStrong` edge reads as a float on both light and dark pages.
 function Menu({ at, theme, metrics, transition }: {
   at: { x: number; y: number };
   theme: Theme;
@@ -83,30 +70,14 @@ function Menu({ at, theme, metrics, transition }: {
 function Counter({ count }: { count: number }) {
   return (
     <box dir="row" gap={12} crossAlign="center">
-      {/* A stock button paints from the theme's accent family — the OS
-          highlight where the host reports one, kui's blue otherwise —
-          takes its hover and pressed shades from it, and picks a black or
-          white label by its luminance, so a yellow accent still reads.
-          Nothing is declared for it: `accent` on a button changes nothing
-          since alpha.12, because it is the accent already. The hand over
-          it is the button's own declaration too, since alpha.14 — the
-          pointer is the arrow over everything but text unless a node
-          says `cursor`, a clickable box of this app's included, as a
-          native control is. */}
+      {/* Stock buttons paint from the theme's accent and set their own
+          pointer; nothing is declared for either. */}
       <button onClick={{ kind: 'add', by: 1 }}>+1</button>
       <button onClick={{ kind: 'add', by: -1 }}>-1</button>
-      {/* `+1` is its own sentence; `reset` names an action and not its
-          object, so the rest of it is a `description` — spoken after the
-          name, never drawn. The stock button reads that, `label`,
-          `tooltip`, `disabled`, `index` and `accent`, and drops any other
-          prop — `cursor` among them — with an `unknown-prop` warning,
-          because its look is its own spec. */}
+      {/* `description` is spoken after the name and never drawn. */}
       <button onClick={{ kind: 'reset' }} description={resetHint}>reset</button>
-      {/* A live region: a screen reader reads the new count when it
-          changes, without the user going looking for it. On the smallest
-          node that holds the message — everything inside a live node is
-          live, so this is the text and not the row. A `<text>` with no
-          `color` is `theme.fg`. */}
+      {/* A screen reader reads the new count when it changes. Everything
+          inside a live node is live, so it wraps the text, not the row. */}
       <box live="polite">
         <text size={20}>{`count = ${count}`}</text>
       </box>
@@ -114,21 +85,12 @@ function Counter({ count }: { count: number }) {
   );
 }
 
-// A `null` tag declares the behaviour and leaves the events without one;
-// this app has a single menu, so there is nothing to tell apart.
-//
-// The third argument is the surface, here for what the OS had to say.
-// `theme()` is the palette as roles — the OS's light or dark picks the base,
-// the OS's accent recolours it, and an unknown appearance is the dark base
-// without claiming the user chose it — so this app names no colour of its
-// own; `metrics()` is the same for sizes. `env().system.motion` is the
-// reading the theme does not cover, and the policy for it is the view's.
+// `theme()` and `metrics()` follow the OS's light/dark and accent, so the
+// app names no colour or size of its own.
 export const view = (model: Model, _window: string, ui: Ctx | KuiWindow) => {
   const theme = ui.theme();
   const metrics = ui.metrics();
-  // Three-valued: test for the request rather than for truthiness, since
-  // `'unknown'` — nobody asked the OS, or the platform has none — is not a
-  // "no", and keeps this app's own 120 ms.
+  // `motion` can also be `'unknown'`, which is not a request for less.
   const transition = ui.env().system.motion === 'reduced' ? 0 : 120;
   return (
     <box pad={24} gap={16} bg={theme.bg} width="grow" height="grow" onContextMenu={null}>
@@ -136,15 +98,11 @@ export const view = (model: Model, _window: string, ui: Ctx | KuiWindow) => {
         <text size={24}>
           <span bold color={theme.accent}>kui</span> × Node × JSX
         </text>
-        {/* `theme.accent` is already the fallback resolved: the OS colour
-            where the host reports one, kui's blue where it cannot tell. */}
         <box bg={theme.accent} width={72} height={2} radius={1} />
       </box>
       <Counter count={model.count} />
-      {/* The stock field, chrome and all: `label` is its key and its
-          accessible name both, `initial` seeds a new editor, and nothing
-          else is read — a field that needs any other row (`autofocus`, a
-          width, `multiline`) is an `<edit>` in a box of its own. */}
+      {/* `label` is the stock field's key and accessible name. For more
+          control (`autofocus`, a width, `multiline`) use an `<edit>`. */}
       <input label="note" initial="" />
       <text size={14} color={theme.muted}>{`note: ${model.note || '(empty)'}`}</text>
       {model.menu
