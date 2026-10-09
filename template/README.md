@@ -27,7 +27,7 @@ it with `CoreMsg`, what the core sends by itself (`changed`, `submit`, `key`,
 `text`, `preedit`, `hover`, `drag`, `drop`, `contextmenu`, `menu`,
 `forceclick`, `dismiss`, `layout`, `modifiers`, `resize`, `window`,
 `system`, `scroll`, `selectionrange`, `sound`, `access`, `change`,
-`files`, `button`, `focus`), and is what the loop delivers:
+`files`, `button`, `focus`, `fonts`, `open`), and is what the loop delivers:
 `runWindowed<Model, AnyMsg>` and `createApp<Model, AnyMsg>` carry it
 through to `update`, events and `dispatch`, so `update` is one switch over
 `msg.kind` with no casts.
@@ -68,6 +68,17 @@ of itself as two more `window` phases, `focused` and `blurred`.
 move and release, captured by the node while the button is held. A
 claimed secondary press is that `button` *instead of* a `contextmenu`,
 which is why the page here says `onContextMenu` and not `onButton`.
+
+The last two need no prop: they arrive on the root unasked, and a counter
+ignores both. `fonts` says the system's installed fonts changed — a face
+installed or removed while the window was open — for an app whose model
+holds the `systemFonts()` list; a `family` named in the view needs
+nothing. `open`, from alpha.40, is the OS handing the app documents —
+Open With in the Finder, a file dropped on the Dock icon, `open -a` — at
+launch or while it runs, `paths` in the order asked. It is macOS's alone:
+Windows and Linux hand documents over in `process.argv`, so an app that
+reads its arguments and hears `open` covers all three.
+`ctx.openDocuments(paths)` is the headless drive of it.
 
 ## One `update`, both drivers
 
@@ -236,9 +247,20 @@ The window is gone by then: nothing draws, and its doors are not for it.
 `await` — the second line is the close button's alone. Headless,
 `app.teardown()` runs the same function, once; a second call is nothing.
 
-`src/headless.tsx` finds controls through `app.accessTree()` by the names a
-reader would say rather than hunting the display list, and exits non-zero if
-the core raised a warning. Two things it does not have to do by hand:
+`src/headless.tsx` finds controls by the names a reader would say rather
+than hunting the display list, and exits non-zero if the core raised a
+warning. From alpha.46 the core does the finding: `app.ctx.keyNamed('+1')`
+is the key of the node a reader hears as "+1", and a second node named the
+same — a caption under the button repeating its text, say — raises
+`ambiguous-name`, so the lookup fails the drive on two controls a screen
+reader could not tell apart, which the `find` it replaced never noticed.
+It answers a key, and this drive presses with the pointer, so the key goes
+back through `app.accessTree()` for the rect to click. (Open field report:
+`keyNamed`'s doc comment in `index.d.ts` spells the use as
+`ctx.click(ctx.keyNamed('Like'))`, which `tsc` rejects — Node's `Ctx` has
+no `click`, and the app's takes `x, y`. The key-taking door is
+`app.access(key, 'click')`, a screen reader's activation rather than a
+press, which leaves the pointer where it was.) Two things it does not have to do by hand:
 `app.ctx.focus('note')` names the editor by the label its `key` declared —
 resolved through the last frame, so no rect to click and no event from it
 first — and `app.press('escape')` is a whole key, both channels in the order a

@@ -64,12 +64,12 @@ is not empty is refused.
 ## The kui version
 
 `template/package.json` names the minimum `@qxuken/kui` the scaffold needs,
-as a range: `^0.1.0-alpha.35`. A floor is all that is. Every kui release
-so far is an alpha, and both `^0.1.0-alpha.35` and `~0.1.0-alpha.35` admit
+as a range: `^0.1.0-alpha.48`. A floor is all that is. Every kui release
+so far is an alpha, and both `^0.1.0-alpha.48` and `~0.1.0-alpha.48` admit
 every later alpha of the same `0.1.0` — npm's semver treats the two alike
 for prereleases of one version tuple — so a fresh scaffold installs the
 newest. An app that wants the kui it tested against edits the line to an
-exact version (`"0.1.0-alpha.35"`) and commits `package-lock.json`, which
+exact version (`"0.1.0-alpha.48"`) and commits `package-lock.json`, which
 is what holds the version either way. `npm view @qxuken/kui version` says
 where the floor has floated to.
 

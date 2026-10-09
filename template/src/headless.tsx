@@ -14,11 +14,22 @@ const app = createApp<Model, AnyMsg>({ init, update, view, teardown }, { width: 
 const stats = app.render();
 console.log(`frame: ${stats.quadCount} quads @ ${stats.viewportW}x${stats.viewportH}`);
 
+/** Where the node a screen reader would call `name` sits. `keyNamed` is the
+ *  core's lookup by that name: a second node read the same raises
+ *  `ambiguous-name`, so a drive that finds its controls this way fails on
+ *  two a reader could not tell apart. It answers a key, and this drive
+ *  presses with the pointer, so the key goes back through the access tree
+ *  for the rect the pointer lands on. */
+function rectNamed(name: string) {
+  const key = app.ctx.keyNamed(name);
+  const node = app.accessTree().nodes.find((n) => n.key === key);
+  if (!node) throw new Error(`no node named ${name} in the access tree`);
+  return node.rect;
+}
+
 /** The centre of the node a screen reader would call `name`. */
 function center(name: string): readonly [number, number] {
-  const node = app.accessTree().nodes.find((n) => n.name === name);
-  if (!node) throw new Error(`no node named ${name} in the access tree`);
-  const { x, y, w, h } = node.rect;
+  const { x, y, w, h } = rectNamed(name);
   return [x + w / 2, y + h / 2] as const;
 }
 
@@ -60,7 +71,8 @@ const fullMotionMs = app.runOut();
 // The stock button carries the rows a reader hears, so `reset` says what it
 // resets. Both of them are in the tree while the menu is open — a `modal`
 // marks the node in effect rather than pruning what is behind it — and what
-// tells them apart is the node each one is inside.
+// tells them apart is the node each one is inside. Which is why they are read
+// off the tree here: `keyNamed('reset')` would pick one and warn of the other.
 const tree = app.accessTree();
 for (const node of tree.nodes.filter((n) => n.name === 'reset')) {
   const parent = tree.nodes.find((n) => n.key === node.parent);
@@ -80,7 +92,7 @@ const role = (rgba: number) => '#' + (rgba >>> 0).toString(16).padStart(8, '0').
 const quads = () => decodeQuads(app.ctx.quads()).map((q) => ({ ...q, hex: '#' + q.color.slice(0, 3).map(hex).join('') }));
 /** The stock button named `name` as it was painted: its fill, and its label's colour. */
 function button(name: string) {
-  const { x, y, w, h } = app.accessTree().nodes.find((n) => n.name === name)!.rect;
+  const { x, y, w, h } = rectNamed(name);
   const inside = (q: { x: number; y: number }) => q.x >= x && q.x < x + w && q.y >= y && q.y < y + h;
   const [fill, ...glyphs] = quads().filter(inside);
   return { fill: fill.hex, label: glyphs[0].hex };
