@@ -21,35 +21,46 @@ load. macOS and Windows need nothing extra.
 
 ## Messages
 
-`Msg` is what this app's nodes send — the `onClick` payloads. `AnyMsg` adds
-`CoreMsg`, what the core sends by itself (`changed`, `submit`, `key`,
-`text`, `preedit`, `hover`, `drag`, `drop`, `contextmenu`, `menu`,
-`forceclick`, `dismiss`, `layout`, `modifiers`, `resize`, `window`,
-`system`, `scroll`, `selectionrange`, `sound`, `access`, `change`,
-`files`, `button`, `focus`, `fonts`, `open`). `runWindowed<Model, AnyMsg>`
-and `createApp<Model, AnyMsg>` carry it through to `update`, so `update` is
-one switch over `msg.kind` with no casts.
+`Msg` is every message `update` sees, and each is one the view declared.
+A node that hears an event names the message it arrives as, and the core
+writes the event's data into it under the event's name: the field's
+`onChange={{ kind: 'note' }}` arrives as `{ kind: 'note', change: { text } }`.
+`Msg` registers those as they arrive — `EditChangeMsg<{ kind: 'note' }>`,
+`ContextMenuMsg<…>`, `DismissMsg<…>`, `SystemMsg<…>` — and `update` is one
+switch over `msg.kind`, the app's own, with no casts. `ev.event` on the
+envelope says which event it was, when that matters.
 
 Props are global, so `onClick` takes any plain data unless the app
-registers its own type; that is all `src/kui.d.ts` does. A tag prop also
-takes `null` — `onContextMenu={null}` here — to declare the behaviour
-without a tag.
+registers its own type; that is all `src/kui.d.ts` does. Once it does, a
+handler prop takes only the messages that carry its event's field, so
+`onChange={{ kind: 'add', by: 1 }}` fails where it is written.
+
+A window's own events — a resize, its keyboard focus, an OS setting, the
+modifiers, fonts, documents opened — have no node, so the root box
+declares them in `windowEvents`. A window hears only what its root
+declares: here `onSystemSettingsChange`.
 
 ## One `update`, both drivers
 
 The config is `{ init, update, view, teardown }` under either driver.
-`update`'s fourth argument is the surface being driven: the headless `Ctx`
-under `createApp`, the `KuiWindow` under `runWindowed`. That is where
-`editText`, `focus`, `measureText` and the theme live. `init` and `view`
-can take it too: `init: (ui) => ...` for a first model measured against the
-real window, `view(model, window, ui)` for the palette and sizes.
+`update(model, msg, ev, ui)` and `view(model, window, ui)` are handed the
+surface being driven: the headless `Ctx` under `createApp`, the `KuiWindow`
+under `runWindowed`. That is where `focus`, `measureText` and the theme
+live. This `update` needs neither `ev` nor `ui`, since the messages carry
+the data; `view` reads the palette and sizes from `ui`. `init` can take it
+too: `init: (ui) => ...` for a first model measured against the real
+window.
 
 ## What the scaffold shows
 
-- **A modal context menu.** `onContextMenu` says where the press landed and
-  the view declares a `modal` float there. `modal` scopes Tab, hit testing
-  and the access tree to its subtree, sends `dismiss` on Escape or an
-  outside press, and restores focus.
+- **A modal context menu.** `onContextMenu`'s message says where the press
+  landed and the view declares a `modal` float there. `modal` scopes Tab,
+  hit testing and the access tree to its subtree, sends its own message
+  (`closeMenu`, with `dismiss: { reason }`) on Escape or an outside press,
+  and restores focus.
+- **The model holds the field's text.** The `<input>` declares
+  `value={model.note}` every frame and `onChange` brings each edit back,
+  so clearing or reformatting the note is a change to the model.
 - **Accessibility from the props.** Every control is a Tab stop and Enter
   and Space press it. The editor and the menu have a `label`; `reset` has a
   `description`, spoken after its name. The count sits in a
@@ -68,8 +79,10 @@ real window, `view(model, window, ui)` for the palette and sizes.
   `transition` to zero. kui shortens no animation on its own.
   `--motion reduced` pins the reading through `runWindowed`'s `system`
   option.
-- **OS changes while open.** A `system` message carries the new readings;
-  `update` returns the model unchanged, which re-runs `view`.
+- **OS changes while open.** The root's `windowEvents` declares
+  `onSystemSettingsChange`, so a `system` message carries the new readings;
+  `update` returns the model unchanged, which re-runs `view`. Without the
+  declaration the window would keep the first frame's palette.
 - **Saving on quit.** `teardown(model)` runs once as the main window goes.
   On a Mac ⌘Q ends the process inside the event loop, so nothing after
   `await runWindowed(...)` runs: `teardown` is the place to save.
@@ -84,8 +97,8 @@ on any core warning:
   (`ambiguous-name`).
 - `ctx.cursorShape()` reads back the pointer over a button, the page and
   the field.
-- `ctx.focus('note')` focuses the editor by its label; `press('escape')`
-  sends a whole key.
+- `ctx.focus('note')` focuses the editor by its label and `type` reaches
+  the model through `onChange`; `press('escape')` sends a whole key.
 - `runOut()` advances until animations settle, so clicks land where the
   user's would.
 - `ctx.setEnv(...)` declares a light-mode user with a yellow accent and

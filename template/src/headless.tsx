@@ -1,13 +1,13 @@
 // The same app without a window, driven the way a user would drive it.
 import { createApp, decodeQuads } from '@qxuken/kui';
-import { init, update, view, type Model, type AnyMsg } from './app.js';
+import { init, update, view, type Model, type Msg } from './app.js';
 
 // Keep what `teardown` is handed, to check it at the end.
 let kept: Model | undefined;
 let tornDown = 0;
 const teardown = (model: Model) => { kept = model; tornDown += 1; };
 
-const app = createApp<Model, AnyMsg>({ init, update, view, teardown }, { width: 640, height: 480 });
+const app = createApp<Model, Msg>({ init, update, view, teardown }, { width: 640, height: 480 });
 
 const stats = app.render();
 console.log(`frame: ${stats.quadCount} quads @ ${stats.viewportW}x${stats.viewportH}`);

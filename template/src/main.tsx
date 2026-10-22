@@ -1,7 +1,7 @@
 // A real window. The promise resolves with the final model when the window
 // closes.
 import { runWindowed } from '@qxuken/kui';
-import { init, update, view, type Model, type AnyMsg } from './app.js';
+import { init, update, view, type Model, type Msg } from './app.js';
 
 // `--motion reduced` pins that one OS reading, to see the reduced-motion
 // branch on a machine that did not ask for it. The rest follows the OS.
@@ -18,7 +18,7 @@ const teardown = (model: Model) => {
   console.log('window gone, final model:', JSON.stringify(model));
 };
 
-const finalModel = await runWindowed<Model, AnyMsg>(
+const finalModel = await runWindowed<Model, Msg>(
   { init, update, view, teardown },
   { title: 'kui app', width: 640, height: 480, minWidth: 420, minHeight: 320,
     system: motion === undefined ? undefined : { motion } },
