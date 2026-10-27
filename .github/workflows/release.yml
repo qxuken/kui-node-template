@@ -1,18 +1,21 @@
-# GitHub Actions: the npmjs half of a release. Pushing a `v*` tag scaffolds
-# an app as `npm create` would, installs it from npmjs, runs it headlessly
-# and typechecks it, then stages @qxuken/create-kui-node on npmjs. Forgejo
-# (.forgejo/workflows/ci.yml) is the CI for pushes and pull requests and
-# publishes the same tag to its own npm registry.
+# The one pipeline. On every push to main and every pull request it
+# scaffolds an app as `npm create` would, installs it from npmjs, runs it
+# headlessly and typechecks it. A `v*` tag does the same, then publishes
+# @qxuken/create-kui-node to npmjs.
 #
-# Secret: NPM_TOKEN, an npmjs granular access token for the @qxuken scope
-# with "Read and write (stage only)". A stage-only token cannot publish, so
-# the runner stages the version and a maintainer with 2FA approves it
-# (`npm stage approve <id>`); the publish job prints the commands.
+# npmjs needs no secret: the package trusts this workflow as its publisher
+# (npmjs.com → @qxuken/create-kui-node → Settings → Trusted Publisher:
+# GitHub Actions, qxuken/kui-node-template, release.yml, with "Allow npm
+# publish"). The publish job asks GitHub for an OIDC token (`id-token:
+# write`) and npm trades it for a short-lived publish token, so a tag goes
+# live with no approval, and with provenance.
 name: release
 
 on:
   push:
+    branches: [main]
     tags: ['v*']
+  pull_request:
 
 permissions:
   contents: read
@@ -21,9 +24,9 @@ jobs:
   check:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 24
 
@@ -53,69 +56,55 @@ jobs:
 
   publish:
     needs: check
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-24.04
+    # id-token is npm's trusted publishing: the OIDC token npmjs trades for
+    # a publish token. It is asked for here only, never workflow-wide.
+    permissions:
+      contents: read
+      id-token: write
     env:
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       NPMJS_REGISTRY: https://registry.npmjs.org/
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      # Trusted publishing needs Node 22.14 and npm 11.5.1 or newer. No
+      # cache: nothing restored from one should reach a publish.
+      - uses: actions/setup-node@v6
         with:
           node-version: 24
+          package-manager-cache: false
 
       - name: Tag matches package.json
         run: |
           set -eu
           ver=$(node -p 'require("./package.json").version')
           test "v$ver" = "$GITHUB_REF_NAME" || { echo "tag $GITHUB_REF_NAME != package.json $ver" >&2; exit 1; }
-          test -n "$NPM_TOKEN" || { echo "NPM_TOKEN secret is not set" >&2; exit 1; }
 
-      # Prereleases get their identifier as the dist-tag; plain versions
-      # become `latest`, which is what `npm create @qxuken/kui-node` picks.
-      # A staged version holds its semver slot and cannot be staged twice,
-      # so a re-run finds it already staged or already live and stops.
-      - name: npm stage publish (npmjs)
+      # setup-node's npm lives under the runner's own tool cache, so this
+      # install needs no sudo.
+      - name: npm 11.5.1 or newer
         run: |
           set -eu
-          # `npm stage` arrived in npm 11.15. setup-node's npm lives under
-          # the runner's own tool cache, so this install needs no sudo.
-          if ! npm stage --help >/dev/null 2>&1; then
+          if ! node -e 'const [a,b,c]=process.argv[1].split(".").map(Number);process.exit(a>11||(a===11&&(b>5||(b===5&&c>=1)))?0:1)' "$(npm --version)"; then
             npm install -g npm@11
-            npm stage --help >/dev/null
           fi
+          npm --version
+
+      # npm finds the OIDC environment itself, takes no token and attaches
+      # provenance. Prereleases get their identifier as the dist-tag; plain
+      # versions become `latest`, which is what `npm create
+      # @qxuken/kui-node` picks. A re-run finds the version live and stops.
+      - name: npm publish (npmjs)
+        run: |
+          set -eu
           pkg=$(node -p 'require("./package.json").name')
           ver=$(node -p 'require("./package.json").version')
           tag=latest
           case "$ver" in *-*) tag="${ver#*-}"; tag="${tag%%.*}";; esac
-          printf '%s:_authToken=%s\n' "${NPMJS_REGISTRY#https:}" "$NPM_TOKEN" >> "$HOME/.npmrc"
           if [ "$(npm view "$pkg@$ver" version --registry "$NPMJS_REGISTRY" 2>/dev/null || true)" = "$ver" ]; then
             echo "$pkg@$ver is already live on npmjs"
             exit 0
           fi
-          # Tolerated: a listing that errors (a package not yet on npmjs,
-          # say) means "nothing staged", and the publish below is the real test.
-          staged=$(npm stage list "$pkg" --json --registry "$NPMJS_REGISTRY" 2>/dev/null || echo '[]')
-          id=$(STAGED="$staged" VER="$ver" node -e '
-            let items = [];
-            try { items = JSON.parse(process.env.STAGED); } catch {}
-            const hit = (Array.isArray(items) ? items : []).find((i) => i.version === process.env.VER);
-            if (hit) process.stdout.write(String(hit.id));
-          ')
-          if [ -n "$id" ]; then
-            echo "$pkg@$ver is already staged on npmjs as $id; approve it with"
-            echo "  npm stage approve $id"
-            exit 0
-          fi
-          # Captured rather than piped through tee: without pipefail a pipe
-          # would report tee's exit status, not npm's.
-          out=$(npm stage publish --registry "$NPMJS_REGISTRY" --tag "$tag" --access public 2>&1) || {
-            printf '%s\n' "$out" >&2
-            exit 1
-          }
-          printf '%s\n' "$out"
-          id=$(printf '%s\n' "$out" | sed -n 's/.*staged with id \([^)]*\)).*/\1/p' | tail -1)
-          echo
-          echo "$pkg@$ver is staged on npmjs under the dist-tag '$tag'. To make it live:"
-          echo "  npm stage approve ${id:-<stage-id>}     # or find it: npm stage list $pkg"
-          echo "  npm view $pkg dist-tags                 # 'latest' should read $ver"
+          npm publish --registry "$NPMJS_REGISTRY" --tag "$tag" --access public
+          npm view "$pkg" dist-tags --registry "$NPMJS_REGISTRY"

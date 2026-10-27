@@ -10,7 +10,7 @@ const args = process.argv.slice(2);
 if (args.includes('--help') || args.includes('-h')) {
   console.log(`usage: npm create @qxuken/kui-node [dir]
 
-Creates a kui Node app in <dir> (default: kui-app): a counter in a real
+Creates a kui Node app in <dir> (default: kui-app): a Kit counter in a real
 window, JSX views compiled by esbuild, kui installed from npm with its
 prebuilt addon.`);
   process.exit(0);

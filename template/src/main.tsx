@@ -1,10 +1,11 @@
 // A real window. The promise resolves with the final model when the window
 // closes.
 import { runWindowed } from '@qxuken/kui';
+import { extension as kit } from '@qxuken/kui/kit';
 import { init, update, view, type Model, type Msg } from './app.js';
 
-// `--motion reduced` pins that one OS reading, to see the reduced-motion
-// branch on a machine that did not ask for it. The rest follows the OS.
+// `--motion reduced` pins that one OS reading, to see Kit hold still on a
+// machine that did not ask for it. The rest follows the OS.
 const flag = process.argv.indexOf('--motion');
 const motion = flag === -1 ? undefined : process.argv[flag + 1];
 if (motion !== undefined && motion !== 'full' && motion !== 'reduced') {
@@ -20,8 +21,9 @@ const teardown = (model: Model) => {
 
 const finalModel = await runWindowed<Model, Msg>(
   { init, update, view, teardown },
+  // Kit is a Lua extension the window loads before its first frame.
   { title: 'kui app', width: 640, height: 480, minWidth: 420, minHeight: 320,
-    system: motion === undefined ? undefined : { motion } },
+    extensions: [kit], system: motion === undefined ? undefined : { motion } },
 );
 // Reached by the close button, and never by ⌘Q.
 console.log('runWindowed resolved:', JSON.stringify(finalModel));

@@ -1,8 +1,8 @@
 # create-kui-node
 
-Scaffolds a [kui](https://github.com/qxuken/kui) app for Node: JSX views,
-Elm-style messages as data, and a real native window — no browser, no
-React.
+Scaffolds a [kui](https://github.com/qxuken/kui) app for Node: JSX views
+drawn with Kit, kui's UI kit; Elm-style messages as data; and a real
+native window — no browser, no React.
 
 ```
 npm create @qxuken/kui-node my-app
@@ -11,10 +11,11 @@ npm install
 npm start
 ```
 
-That opens a window with a counter, a text field and a context menu.
-Nothing to configure first: the initializer and
+That opens a window with a counter, a text field and a context menu, all
+Kit components. Nothing to configure first: the initializer and
 [`@qxuken/kui`](https://www.npmjs.com/package/@qxuken/kui) both come from
-npm, and kui's native addon arrives prebuilt inside the package.
+npm, and npm installs kui's native addon prebuilt for the machine it runs
+on.
 
 ## What you get
 
@@ -38,19 +39,29 @@ my-app/
 
 The app is one `update` over plain-data messages and one `view` that
 declares the frame from scratch, and both drivers run the same pair: the
-headless one is how the app is tested. The generated README walks through
-what the counter demonstrates — a modal context menu, accessibility names,
-the OS's light and dark and accent colour, reduced motion, `teardown` on
-quit — and the full prop and event reference ships with the library as
-`node_modules/@qxuken/kui/props.md`, with `howto.md` beside it.
+headless one is how the app is tested. The view places Kit's components
+(`Toolbar`, `Button`, `Stat`, `TextField`, `Menu`, `Statusbar`, …) from
+`@qxuken/kui/kit`, and Kit, a Lua extension, is loaded on the window
+before its first frame. The generated README walks through what the
+counter demonstrates — Kit's skins, a modal context menu, accessibility
+names, the OS's light and dark, reduced motion, `teardown` on quit — and
+the reference ships with the library: `props.md` for the core,
+`kit/reference.md` for Kit, `howto.md` beside them.
+
+The [kui runner](https://www.npmjs.com/package/@qxuken/kui-cli) (`kui
+new`, `kui run`) is the other way to build a kui app with Kit: in Lua or
+Teal, with no Node. This initializer is for an app on the Node API.
 
 ## Requirements
 
 - Node 20 or newer.
-- One of the platforms the addon is prebuilt for: linux-x64, linux-arm64,
-  darwin-arm64, darwin-x64, win32-x64. Anywhere else, build `kui-node` from
-  the [kui repository](https://github.com/qxuken/kui) and point
-  `KUI_NODE_LIB` at the result.
+- One of the platforms the addon is prebuilt for: linux-x64, linux-arm64
+  (glibc 2.28 or newer), darwin-arm64, win32-x64. `@qxuken/kui` names
+  them as optional dependencies (`@qxuken/kui-<platform>`), so an install
+  with `--omit=optional`, or from a lockfile written on another OS, has no
+  addon and says how to fix it. Anywhere else, build `kui-node` from the
+  [kui repository](https://github.com/qxuken/kui) and point `KUI_NODE_LIB`
+  at the result.
 - On Linux, ALSA's runtime library (`libasound2`, or `libasound2t64` on
   Debian trixie and Ubuntu 24.04 onward): the addon links it for audio, and
   without it even `npm run headless` fails at load. A window also needs a
@@ -64,22 +75,23 @@ is not empty is refused.
 ## The kui version
 
 `template/package.json` names the minimum `@qxuken/kui` the scaffold needs,
-as a range: `^0.1.0-alpha.60`. A floor is all that is. Every kui release
-so far is an alpha, and both `^0.1.0-alpha.60` and `~0.1.0-alpha.60` admit
+as a range: `^0.1.0-alpha.68`. A floor is all that is. Every kui release
+so far is an alpha, and both `^0.1.0-alpha.68` and `~0.1.0-alpha.68` admit
 every later alpha of the same `0.1.0` — npm's semver treats the two alike
 for prereleases of one version tuple — so a fresh scaffold installs the
 newest. An app that wants the kui it tested against edits the line to an
-exact version (`"0.1.0-alpha.60"`) and commits `package-lock.json`, which
+exact version (`"0.1.0-alpha.68"`) and commits `package-lock.json`, which
 is what holds the version either way. `npm view @qxuken/kui version` says
 where the floor has floated to.
 
 ## Versions before npmjs
 
 npmjs has the initializer from 0.14.1 and `@qxuken/kui` from
-0.1.0-alpha.35. Every version of both, the earlier ones included, is on
-the Forgejo npm registry the project grew up on. To use that one, scope
-it — Forgejo does not proxy npmjs, so a plain `registry=` line would send
-esbuild and typescript there too and fail:
+0.1.0-alpha.35. The Forgejo npm registry the project grew up on holds the
+earlier versions and takes no new ones: it stops at the initializer's
+0.16.0 and kui's 0.1.0-alpha.67. To use it, scope it — Forgejo does not
+proxy npmjs, so a plain `registry=` line would send esbuild and typescript
+there too and fail:
 
 ```
 npm config set @qxuken:registry https://drydock9.qxuken.dev/api/packages/qxuken/npm/
@@ -97,25 +109,16 @@ publish the library first, then tag here. CI installs the scaffold for
 real and cannot resolve a floor that is not published.
 
 Releases are tags: `npm version <x.y.z>` (commits and tags `v<x.y.z>`),
-then `git push --follow-tags origin main`. The tag runs two pipelines:
+then `git push --follow-tags origin main`. One GitHub workflow,
+[release.yml](.github/workflows/release.yml), scaffolds, installs, runs
+headless and typechecks on every push and pull request; on a `v*` tag it
+then publishes to npmjs.
 
-- **Forgejo**, [ci.yml](.forgejo/workflows/ci.yml): scaffolds, installs,
-  runs headless and typechecks on every push, and on a `v*` tag publishes
-  to the Forgejo npm registry with the `PACKAGES_TOKEN` secret.
-- **GitHub**, [release.yml](.github/workflows/release.yml): the same check,
-  then the package staged on npmjs with the `NPM_TOKEN` secret, a granular
-  token for the `@qxuken` scope that can stage and not publish.
-
-A staged version is hidden until a maintainer with 2FA approves it, with
-npm 11.15 or newer (`npm install -g npm@11`):
-
-```
-npm stage list @qxuken/create-kui-node
-npm stage approve <stage-id>        # opens npmjs in the browser for the 2FA step
-npm view @qxuken/create-kui-node dist-tags
-```
-
-The first version staged creates the package with a `0.0.0-stage`
-placeholder holding `latest`. `npm create` installs `latest`, so check the
-last command's answer: if it does not read the approved version, `npm
-dist-tag add @qxuken/create-kui-node@<version> latest` moves it.
+The publish uses npm's trusted publishing, so there is no token to keep:
+the job asks GitHub for an OIDC token and npm trades it for a short-lived
+one, and the version goes live with provenance, no approval step. It
+needs the package's trusted publisher set once, on npmjs.com →
+`@qxuken/create-kui-node` → Settings → Trusted Publisher: GitHub Actions,
+organization or user `qxuken`, repository `kui-node-template`, workflow
+`release.yml`. A version npmjs already holds is left alone, so a re-run
+of a tag is safe.
