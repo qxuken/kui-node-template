@@ -3,7 +3,7 @@
 // anything else, and a handler prop takes only the messages that carry its
 // event's field: `onContextMenu` takes `{ kind: 'openMenu' }` because `Msg`
 // registers it as a `ContextMenuMsg`. Without this file they accept any
-// plain data. Kit's own `on*` props are typed `unknown` and are not checked.
+// plain data. Kit's own `on*` props follow the same registration.
 //
 // Use `import('./app.js').Msg` inline — a bare `Msg` here resolves to the
 // package's own type. `export {}` makes this an augmentation.

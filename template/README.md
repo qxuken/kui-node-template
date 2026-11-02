@@ -65,7 +65,7 @@ Props are global, so `onClick` takes any plain data unless the app
 registers its own type; that is all `src/kui.d.ts` does. Once it does, a
 core handler prop takes only the messages that carry its event's field,
 so `onContextMenu={{ kind: 'add', by: 1 }}` fails where it is written.
-Kit's `on*` props are not checked yet (below).
+Kit's `on*` props are checked the same way.
 
 A window's own events — a resize, its keyboard focus, an OS setting, the
 modifiers, fonts, documents opened — have no node, so the root box
@@ -134,22 +134,6 @@ on any core warning:
   drive reads the buttons' fills and labels under each half and
   checks that the menu now opens settled.
 - `app.teardown()` runs `teardown` once, and a second call does nothing.
-
-## Open field reports
-
-- Kit exports its `$kit…` tokens so an app's own boxes paint in the skin
-  (`bg="$kitPanel"`, says kui's changelog for alpha.68), but Node's encoder
-  resolves a `$name` against the app's `setTokens` table and the roles
-  only: from JSX, `$kitBg` raises `unknown-token` and paints nothing. So
-  the body sits on the window's own ground, the core theme's `bg`, rather
-  than the skin's.
-- Kit's `on*` props (`onPress`, `onChange`, `onChoose`, …) are typed
-  `unknown`, so the `Msg` that `src/kui.d.ts` registers does not reach
-  them: `<Button onPress={{ kind: 'typo' }}/>` compiles, where the core's
-  `<button onClick={{ kind: 'typo' }}>` fails.
-- `keyNamed`'s doc comment in `index.d.ts` shows
-  `ctx.click(ctx.keyNamed('Like'))`, which `tsc` rejects — Node's `Ctx` has
-  no `click`. Click by key with `app.access(key, 'click')`.
 
 ## Reference
 
